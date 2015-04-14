@@ -1,2 +1,2 @@
-# SWIM-Through-the-NATs
-kth course project in ID2210
+# id2210-vt15
+id2210-vt15
