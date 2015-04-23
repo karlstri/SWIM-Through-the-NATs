@@ -56,7 +56,8 @@ public class SwimComp extends ComponentDefinition {
 
     private int receivedPings = 0;
 
-    public SwimComp(SwimInit init) {
+    public SwimComp(SwimInit init) 
+    {
         this.selfAddress = init.selfAddress;
         log.info("{} initiating...", selfAddress);
         this.bootstrapNodes = init.bootstrapNodes;
@@ -75,8 +76,10 @@ public class SwimComp extends ComponentDefinition {
         public void handle(Start event) {
             log.info("{} starting...", new Object[]{selfAddress.getId()});
 
-            if (!bootstrapNodes.isEmpty()) {
+            if (!bootstrapNodes.isEmpty())
+            {
                 schedulePeriodicPing();
+                
             }
             schedulePeriodicStatus();
         }
@@ -100,7 +103,8 @@ public class SwimComp extends ComponentDefinition {
     private Handler<NetPing> handlePing = new Handler<NetPing>() {
 
         @Override
-        public void handle(NetPing event) {
+        public void handle(NetPing event) 
+        {
             log.info("{} received ping from:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
             receivedPings++;
         }
@@ -129,7 +133,8 @@ public class SwimComp extends ComponentDefinition {
 
     };
 
-    private void schedulePeriodicPing() {
+    private void schedulePeriodicPing()
+    {
         SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(1000, 1000);
         PingTimeout sc = new PingTimeout(spt);
         spt.setTimeoutEvent(sc);
