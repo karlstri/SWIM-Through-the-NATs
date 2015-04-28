@@ -24,6 +24,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import se.kth.swim.msg.Pong;
 import se.kth.swim.msg.Status;
 import se.kth.swim.msg.net.NetPing;
 import se.kth.swim.msg.net.NetPong;
@@ -69,6 +70,7 @@ public class SwimComp extends ComponentDefinition {
         subscribe(handleStart, control);
         subscribe(handleStop, control);
         subscribe(handlePing, network);
+        subscribe(handlePong, network);
         subscribe(handlePingTimeout, timer);
         subscribe(handleStatusTimeout, timer);
     }
@@ -110,6 +112,7 @@ public class SwimComp extends ComponentDefinition {
         {
             log.info("{} received ping from:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
             receivedPings++;
+            trigger(new NetPong(selfAddress, event.getSource(),new Pong()), network);
         }
 
     };
@@ -119,7 +122,6 @@ public class SwimComp extends ComponentDefinition {
         public void handle(NetPong event) 
         {
             log.info("{} received pong from:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
-            receivedPings++;
         }
 
     };
