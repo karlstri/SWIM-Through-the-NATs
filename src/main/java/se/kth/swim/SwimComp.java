@@ -20,10 +20,13 @@ package se.kth.swim;
 
 import java.util.Set;
 import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import se.kth.swim.msg.Status;
 import se.kth.swim.msg.net.NetPing;
+import se.kth.swim.msg.net.NetPong;
 import se.kth.swim.msg.net.NetStatus;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
@@ -106,6 +109,16 @@ public class SwimComp extends ComponentDefinition {
         public void handle(NetPing event) 
         {
             log.info("{} received ping from:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
+            receivedPings++;
+        }
+
+    };
+    private Handler<NetPong> handlePong = new Handler<NetPong>() {
+
+        @Override
+        public void handle(NetPong event) 
+        {
+            log.info("{} received pong from:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
             receivedPings++;
         }
 
