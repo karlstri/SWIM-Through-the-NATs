@@ -112,6 +112,7 @@ public class SwimComp extends ComponentDefinition {
         {
             log.info("{} received ping from:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
             receivedPings++;
+            log.info("{} sending pong to:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
             trigger(new NetPong(selfAddress, event.getSource(),new Pong()), network);
         }
 
