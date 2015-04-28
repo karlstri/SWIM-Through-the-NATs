@@ -119,6 +119,7 @@ public class SwimComp extends ComponentDefinition {
                 log.info("{} sending ping to partner:{}", new Object[]{selfAddress.getId(), partnerAddress});
                 trigger(new NetPing(selfAddress, partnerAddress), network);
             }
+
         }
 
     };
