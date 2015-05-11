@@ -18,6 +18,7 @@
  */
 package se.kth.swim;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -320,8 +321,8 @@ public class SwimComp extends ComponentDefinition {
     			A++;
     			
     	}
-        log.info("{} has {} Alive, {} Suspected, {} Dead", new Object[]{selfAddress.getId(),A,S,D });
-        log.info("nodes are :", new Object[]{nodeStatus.keySet() });
+        log.info("{} has {} Alive, {} Suspected, {} Dead", new Object[]{selfAddress,A,S,D });
+        log.info("nodes are :"+ Arrays.toString(nodeStatus.keySet().toArray()), new Object[]{ });
 
     }
 }
