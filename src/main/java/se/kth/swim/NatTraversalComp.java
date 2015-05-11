@@ -41,7 +41,8 @@ import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
  *
  * @author Alex Ormenisan <aaor@sics.se>
  */
-public class NatTraversalComp extends ComponentDefinition {
+public class NatTraversalComp extends ComponentDefinition 
+{
 
     private static final Logger log = LoggerFactory.getLogger(NatTraversalComp.class);
     private Negative<Network> local = provides(Network.class);

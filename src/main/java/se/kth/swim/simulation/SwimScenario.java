@@ -238,11 +238,14 @@ public class SwimScenario {
     //So be carefull for null pointer exception if you draw more times than elements
     //check se.sics.p2ptoolbox.simulator.dsl.distribution for more distributions
     //you can implement your own - by extending Distribution
-    public static SimulationScenario simpleBoot(final long seed) {
+    public static SimulationScenario simpleBoot(final long seed) 
+    {
         SwimScenario.seed = seed;
-        SimulationScenario scen = new SimulationScenario() {
+        SimulationScenario scen = new SimulationScenario()
+        {
             {
-                StochasticProcess startAggregator = new StochasticProcess() {
+                StochasticProcess startAggregator = new StochasticProcess() 
+                {
                     {
                         eventInterArrivalTime(constant(1000));
                         raise(1, startAggregatorOp, new ConstantDistribution(Integer.class, 0));

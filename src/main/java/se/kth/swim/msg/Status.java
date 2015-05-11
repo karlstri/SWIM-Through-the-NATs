@@ -19,13 +19,43 @@
 
 package se.kth.swim.msg;
 
+import java.io.Serializable;
+
 /**
  * @author Alex Ormenisan <aaor@sics.se>
  */
-public class Status {
-    public int receivedPings;
+public class Status implements Serializable
+{
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = -1322131551168831635L;
+	public static final int ALIVE = 0;
+
+	public int Status;
+    public long time;
+	public int receivedPings;
     
-    public Status(int receivedPings) {
-        this.receivedPings = receivedPings;
-    }
+  
+
+	public Status(int s, long ts)
+	{
+		Status=s;
+		time=ts;
+	}
+
+
+
+	public Status(int receivedPings2) {
+		this.receivedPings=receivedPings2;
+	}
+
+
+
+	public boolean isAlive()
+	{
+		if(Status ==ALIVE)
+			return true;
+		return false;
+	}
 }

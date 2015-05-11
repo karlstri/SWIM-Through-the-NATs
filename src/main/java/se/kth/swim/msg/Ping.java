@@ -19,8 +19,27 @@
 
 package se.kth.swim.msg;
 
+import java.io.Serializable;
+import java.util.HashMap;
+
+import se.sics.p2ptoolbox.util.network.NatedAddress;
+
 /**
  * @author Alex Ormenisan <aaor@sics.se>
  */
-public class Ping {
+public class Ping implements Serializable 
+{
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 8558245837933033070L;
+	NatedAddress sender;
+	public HashMap<NatedAddress,Status> data;
+	
+	public Ping(NatedAddress sender,HashMap<NatedAddress,Status> piggy )
+	{
+		this.sender=sender;
+		data=piggy;
+	}
 }
