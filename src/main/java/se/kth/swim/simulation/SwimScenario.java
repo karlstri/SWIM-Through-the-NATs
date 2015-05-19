@@ -24,7 +24,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.javatuples.Pair;
+
 import se.kth.swim.AggregatorComp;
 import se.kth.swim.HostComp;
 import se.sics.kompics.network.Address;
@@ -255,7 +257,7 @@ public class SwimScenario {
                 StochasticProcess startPeers = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
-                        raise(3, startNodeOp, new GenIntSequentialDistribution(new Integer[]{10, 14, 18}));
+                        raise(6, startNodeOp, new GenIntSequentialDistribution(new Integer[]{10, 14, 18,22,26,30}));
                     }
                 };
 
@@ -263,6 +265,7 @@ public class SwimScenario {
                     {
                         eventInterArrivalTime(constant(1000));
                         raise(1, killNodeOp, new ConstantDistribution(Integer.class, 10));
+                        System.err.println("killed a peer");
                     }
                 };
 
@@ -290,6 +293,7 @@ public class SwimScenario {
                 startAggregator.start();
                 startPeers.startAfterTerminationOf(1000, startAggregator);
 //                stopPeers.startAfterTerminationOf(10000, startPeers);
+               killPeers.startAfterStartOf(1000, startPeers);
 //                deadLinks1.startAfterTerminationOf(10000,startPeers);
 //                disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
                 fetchSimulationResult.startAfterTerminationOf(10000, startPeers);

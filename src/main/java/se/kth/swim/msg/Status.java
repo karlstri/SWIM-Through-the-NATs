@@ -31,6 +31,7 @@ public class Status implements Serializable
 	 */
 	private static final long serialVersionUID = -1322131551168831635L;
 	public static final int ALIVE = 0;
+	public static final int DEAD = 4;
 
 	public int Status;
     public long time;

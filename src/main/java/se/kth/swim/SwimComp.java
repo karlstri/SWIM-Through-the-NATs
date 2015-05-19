@@ -18,11 +18,13 @@
  */
 package se.kth.swim;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
@@ -43,6 +45,7 @@ import se.sics.kompics.Stop;
 import se.sics.kompics.network.Network;
 import se.sics.kompics.timer.CancelTimeout;
 import se.sics.kompics.timer.SchedulePeriodicTimeout;
+import se.sics.kompics.timer.ScheduleTimeout;
 import se.sics.kompics.timer.Timeout;
 import se.sics.kompics.timer.Timer;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
@@ -54,14 +57,16 @@ public class SwimComp extends ComponentDefinition {
 
     private static final Logger log = LoggerFactory.getLogger(SwimComp.class);
 	private static final double lambda =2.0;
+	private static final long  maxRTTdir=1000; //i think it is ms
 	
     private Positive<Network> network = requires(Network.class);
     private Positive<Timer> timer = requires(Timer.class);
 
     private final NatedAddress selfAddress;
-    private final Set<NatedAddress> Nodes;
+    ArrayList<NatedAddress> Nodes=new ArrayList<NatedAddress>();	
     private final NatedAddress aggregatorAddress;
 
+    private UUID RTTID;
     private UUID pingTimeoutId;
     private UUID statusTimeoutId;
 
@@ -74,16 +79,19 @@ public class SwimComp extends ComponentDefinition {
     private Set<NatedAddress> RestrictedAddresses;
     
     private long ts;//time stamp
+    Random rand=new Random();
     
     public SwimComp(SwimInit init) 
     {
         this.selfAddress = init.selfAddress;
         log.info("{} initiating...", selfAddress);
-        this.Nodes = init.bootstrapNodes;
+        this.Nodes.addAll( init.bootstrapNodes);
         this.aggregatorAddress = init.aggregatorAddress;
         
-        nodeStatus=new HashMap<NatedAddress,Status>();
-        Delta =new LinkedList<Pair<NatedAddress,Status> >();
+        
+        ArrayList<NatedAddress> Nodes;						//all know nodes
+        nodeStatus=new HashMap<NatedAddress,Status>();		//nodes and status
+        Delta =new LinkedList<Pair<NatedAddress,Status> >();//recent changes
 
         
         openAddresses =new HashSet<NatedAddress>();
@@ -93,8 +101,9 @@ public class SwimComp extends ComponentDefinition {
         subscribe(handleStop, control);
         subscribe(handlePing, network);
         subscribe(handlePong, network);
-        subscribe(handlePingTimeout, timer);
+        subscribe(handlePeriodicPingTimeout, timer);
         subscribe(handleStatusTimeout, timer);
+        subscribe(handleRTTTimeout,timer);
     }
 
     private Handler<Start> handleStart = new Handler<Start>() {
@@ -107,7 +116,6 @@ public class SwimComp extends ComponentDefinition {
             if (!Nodes.isEmpty())
             {
                 schedulePeriodicPing();
-                
             }
             schedulePeriodicStatus();
         }
@@ -127,7 +135,9 @@ public class SwimComp extends ComponentDefinition {
         }
 
     };
-
+    /**
+     * Handles incoming ping
+     * */
     private Handler<NetPing> handlePing = new Handler<NetPing>() {
 
         @Override
@@ -152,25 +162,41 @@ public class SwimComp extends ComponentDefinition {
             log.info("{} received pong from:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
             NodeAlive(event.getSource());
             GetPiggyStatus(event.getContent().data);
+            cancelRTTtimeout();
         }
 
     };
-
-    private Handler<PingTimeout> handlePingTimeout = new Handler<PingTimeout>() {
+    /**
+     * the periodic ping trigger
+     * */
+    private Handler<PeriodicPingTimer> handlePeriodicPingTimeout = new Handler<PeriodicPingTimer>() {
 
         @Override
-        public void handle(PingTimeout event)
+        public void handle(PeriodicPingTimer event)
         {
-            for (NatedAddress partnerAddress : Nodes)
-            {
-                log.info("{} sending ping to partner:{}", new Object[]{selfAddress.getId(), partnerAddress});
-                trigger(new NetPing(selfAddress, partnerAddress), network);
-            }
+        	NatedAddress partnerAdr=getRandomNode();
+            
+            log.info("{} sending ping to partner:{}", new Object[]{selfAddress.getId(), partnerAdr});
+            
+            trigger(new NetPing(selfAddress, partnerAdr), network);
+            scheduleRTTtimeout(partnerAdr);
 
         }
 
     };
+    private Handler<RTT_Timeout> handleRTTTimeout = new Handler<RTT_Timeout>() 
+	{
 
+        @Override
+        public void handle(RTT_Timeout event)
+        {
+            log.info("{} did not revive pong from {}", new Object[]{selfAddress.getId(), event.TargetAdr});
+
+        }
+        
+    };
+
+    
     private Handler<StatusTimeout> handleStatusTimeout = new Handler<StatusTimeout>() {
 
         @Override
@@ -181,17 +207,46 @@ public class SwimComp extends ComponentDefinition {
         }
 
     };
-	
+    private void scheduleRTTtimeout(NatedAddress x)
+    {
+    	ScheduleTimeout ST=new ScheduleTimeout(maxRTTdir);
+    	RTT_Timeout t=new RTT_Timeout(ST,x);
+    	ST.setTimeoutEvent(t);
+    	RTTID=t.getTimeoutId();
+    	trigger(ST,timer);
+    }
+    private void cancelRTTtimeout()
+	{
+        CancelTimeout ct = new CancelTimeout(RTTID);
+        trigger(ct, timer);
+        pingTimeoutId = null;
+    }
 
     private void schedulePeriodicPing()
     {
         SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(1000, 1000);
-        PingTimeout sc = new PingTimeout(spt);
+        PeriodicPingTimer sc = new PeriodicPingTimer(spt);
         spt.setTimeoutEvent(sc);
         pingTimeoutId = sc.getTimeoutId();
         trigger(spt, timer);
+        log.info("{} scheduling...", new Object[]{selfAddress.getId()});
+
     }
-    private boolean tryInsert(NatedAddress adr,Status s)
+    protected NatedAddress getRandomNode() 
+    {
+    	NatedAddress adr=selfAddress;
+    	while(true)
+    	{
+    		adr=Nodes.get(rand.nextInt(Nodes.size()));
+    		if(nodeStatus.get(adr)==null||nodeStatus.get(adr).Status!=Status.DEAD)
+    			break;
+    	}
+    	
+
+ 		
+		return adr;
+	}
+	private boolean tryInsert(NatedAddress adr,Status s)
     {
     	Status stored=nodeStatus.get(adr);
     	if (stored!=null&&stored.Status==s.Status)
@@ -210,11 +265,19 @@ public class SwimComp extends ComponentDefinition {
 
     	for(NatedAddress adr:piggydata.keySet())
     	{
-    		if(tryInsert(adr,piggydata.get(adr)))
+    		Status old_s=nodeStatus.get(adr);
+    		Status new_s=piggydata.get(adr);
+    		if(old_s==null)
+    		{
+    			nodeStatus.put(adr, new_s);
     			continue;
-    		else
-    			Delta.add(new Pair<NatedAddress,Status>(adr, piggydata.get(adr)));
-    	}
+    		}
+    		if (old_s.time<new_s.time)
+    		{
+    			nodeStatus.put(adr, new_s);
+    		}
+    		
+    	} 
     }
     /**
      * use for when receiving a message from someone
@@ -257,7 +320,8 @@ public class SwimComp extends ComponentDefinition {
     	return ret;
     }
 
-	private void cancelPeriodicPing() {
+	private void cancelPeriodicPing()
+	{
         CancelTimeout cpt = new CancelTimeout(pingTimeoutId);
         trigger(cpt, timer);
         pingTimeoutId = null;
@@ -301,14 +365,25 @@ public class SwimComp extends ComponentDefinition {
         {
             super(request);
         }
-    }
-
-    private static class PingTimeout extends Timeout
+    }   
+    private static class PeriodicPingTimer extends Timeout
     {
-
-        public PingTimeout(SchedulePeriodicTimeout request)
+        public PeriodicPingTimer(SchedulePeriodicTimeout request)
         {
             super(request);
+            log.info("peridic ping set ");
+        }
+        
+    }
+    private static class RTT_Timeout extends Timeout
+    {
+    	public final NatedAddress TargetAdr;
+    	public final NatedAddress Proxy;
+		public RTT_Timeout(ScheduleTimeout sT,NatedAddress target)
+        {
+            super(sT);
+            TargetAdr=target;
+            Proxy=null;
         }
     }
     public void printStatus()
