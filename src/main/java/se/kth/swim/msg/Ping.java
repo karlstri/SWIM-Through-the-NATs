@@ -34,12 +34,24 @@ public class Ping implements Serializable
 	 * 
 	 */
 	private static final long serialVersionUID = 8558245837933033070L;
-	NatedAddress sender;
+	
+	public NatedAddress sender;
+	public NatedAddress Proxy;
+	public NatedAddress dest;
+
 	public HashMap<NatedAddress,Status> data;
 	
-	public Ping(NatedAddress sender,HashMap<NatedAddress,Status> piggy )
+	public Ping(NatedAddress sender,NatedAddress dest,NatedAddress proxy,HashMap<NatedAddress,Status> piggy )
 	{
 		this.sender=sender;
+		this.dest=dest;
+		this.Proxy=proxy;
 		data=piggy;
+	}
+
+	public Ping useProxy(NatedAddress inderect_adr)
+	{
+		
+		return new Ping(sender,dest,inderect_adr,data);
 	}
 }

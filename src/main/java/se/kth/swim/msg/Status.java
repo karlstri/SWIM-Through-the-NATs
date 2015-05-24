@@ -32,6 +32,7 @@ public class Status implements Serializable
 	private static final long serialVersionUID = -1322131551168831635L;
 	public static final int ALIVE = 0;
 	public static final int DEAD = 4;
+	public static final int SUSP = 1;
 
 	public int Status;
     public long time;
@@ -56,6 +57,22 @@ public class Status implements Serializable
 	public boolean isAlive()
 	{
 		if(Status ==ALIVE)
+			return true;
+		return false;
+	}
+
+
+
+	public boolean isSusp() {
+		if(Status ==SUSP)
+			return true;
+		return false;
+	}
+
+
+
+	public boolean isDead() {
+		if(Status ==DEAD)
 			return true;
 		return false;
 	}

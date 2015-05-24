@@ -53,7 +53,8 @@ import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 /**
  * @author Alex Ormenisan <aaor@sics.se>
  */
-public class SwimScenario {
+public class SwimScenario 
+{
 
     private static long seed;
     private static InetAddress localHost;
@@ -243,6 +244,7 @@ public class SwimScenario {
     public static SimulationScenario simpleBoot(final long seed) 
     {
         SwimScenario.seed = seed;
+        final int peers=15;
         SimulationScenario scen = new SimulationScenario()
         {
             {
@@ -257,14 +259,21 @@ public class SwimScenario {
                 StochasticProcess startPeers = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
-                        raise(6, startNodeOp, new GenIntSequentialDistribution(new Integer[]{10, 14, 18,22,26,30}));
+                        
+                        Integer[] peerId=new Integer[peers];
+                        for(int i=0;i<peers;i++)
+                        {
+                        	peerId[i]=10 +4*i;
+                        }
+                        raise(peers, startNodeOp, new GenIntSequentialDistribution(peerId));
                     }
                 };
 
                 StochasticProcess killPeers = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
-                        raise(1, killNodeOp, new ConstantDistribution(Integer.class, 10));
+                        
+                       // raise(1, killNodeOp, new ConstantDistribution(Integer.class, 10));
                         System.err.println("killed a peer");
                     }
                 };
@@ -280,6 +289,7 @@ public class SwimScenario {
                     {
                         eventInterArrivalTime(constant(1000));
                         raise(1, disconnectedNodesNMOp, new ConstantDistribution(Integer.class, 1));
+                        
                     }
                 };
 
@@ -293,11 +303,11 @@ public class SwimScenario {
                 startAggregator.start();
                 startPeers.startAfterTerminationOf(1000, startAggregator);
 //                stopPeers.startAfterTerminationOf(10000, startPeers);
-               killPeers.startAfterStartOf(1000, startPeers);
+//               killPeers.startAfterStartOf(1000, startPeers);
 //                deadLinks1.startAfterTerminationOf(10000,startPeers);
-//                disconnectedNodes1.startAfterTerminationOf(10000, startPeers);
-                fetchSimulationResult.startAfterTerminationOf(10000, startPeers);
-                terminateAfterTerminationOf(1000, fetchSimulationResult);
+                disconnectedNodes1.startAfterTerminationOf(1000, startPeers);
+                //fetchSimulationResult.startAfterTerminationOf(10000, startPeers);
+                //terminateAfterTerminationOf(10000, fetchSimulationResult);
 
             }
         };

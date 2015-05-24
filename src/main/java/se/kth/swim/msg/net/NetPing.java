@@ -21,6 +21,7 @@ package se.kth.swim.msg.net;
 import java.util.HashMap;
 
 import se.kth.swim.msg.Ping;
+import se.kth.swim.msg.Pong;
 import se.kth.swim.msg.Status;
 import se.sics.kompics.network.Header;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
@@ -30,15 +31,23 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
  */
 public class NetPing extends NetMsg<Ping> {
 
-    public NetPing(NatedAddress src, NatedAddress dst) {
-        super(src, dst, new Ping(src,new HashMap<NatedAddress, Status>()));
-    }
-
     private NetPing(Header<NatedAddress> header, Ping content) {
         super(header, content);
     }
+    
+	public NetPing(NatedAddress selfAddress, NatedAddress destAddress, Ping ping)
+	{
+		super(selfAddress, destAddress, ping);
+		// TODO Auto-generated constructor stub
+	}
 
-    @Override
+ /*   public NetPing(NatedAddress selfAddress, NatedAddress targetAdr,NatedAddress inderect_adr,HashMap<NatedAddress, Status> gossip) 
+    {
+        super(selfAddress, inderect_adr, new Ping(selfAddress,targetAdr,inderect_adr,gossip));
+
+	}*/
+
+	@Override
     public NetMsg copyMessage(Header<NatedAddress> newHeader) {
         return new NetPing(newHeader, getContent());
     }

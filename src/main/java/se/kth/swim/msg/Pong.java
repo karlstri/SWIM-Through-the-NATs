@@ -11,12 +11,17 @@ public class Pong implements Serializable
 	 * 
 	 */
 	private static final long serialVersionUID = 8445207338053984124L;
-	NatedAddress sender;
+	public NatedAddress sender;
+	public NatedAddress Proxy;
+	public NatedAddress dest;
+
 	public HashMap<NatedAddress,Status> data;
 	
-	public Pong(NatedAddress sender,HashMap<NatedAddress,Status> piggy )
+	public Pong(NatedAddress sender,NatedAddress dest,NatedAddress proxy,HashMap<NatedAddress,Status> piggy )
 	{
 		this.sender=sender;
+		this.dest=dest;
+		this.Proxy=proxy;
 		data=piggy;
 	}
 }

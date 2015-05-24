@@ -7,8 +7,9 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
 
 public class NetPong extends NetMsg<Pong>{
 
-	public NetPong(NatedAddress selfAddress, NatedAddress natedAddress, Pong pong) {
-		super(selfAddress, natedAddress, pong);
+	public NetPong(NatedAddress selfAddress, NatedAddress destAddress, Pong pong)
+	{
+		super(selfAddress, destAddress, pong);
 		// TODO Auto-generated constructor stub
 	}
 
