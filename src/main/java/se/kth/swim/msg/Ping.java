@@ -54,4 +54,10 @@ public class Ping implements Serializable
 		
 		return new Ping(sender,dest,inderect_adr,data);
 	}
+	@Override
+	public String toString()
+	{
+		return "from "+sender.getId()+" to "+dest.getId()+" via "+Proxy;
+		
+	}
 }

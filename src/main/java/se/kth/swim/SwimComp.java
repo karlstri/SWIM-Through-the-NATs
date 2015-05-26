@@ -58,7 +58,7 @@ public class SwimComp extends ComponentDefinition {
 
     private static final Logger log = LoggerFactory.getLogger(SwimComp.class);
 	private static final double lambda =2.0;
-	private static final long  maxRTTdir=1000; //i think it is ms
+	private static final long  maxRTTdir=400; //i think it is ms
 	
     private Positive<Network> network = requires(Network.class);
     private Positive<Timer> timer = requires(Timer.class);
@@ -92,6 +92,7 @@ public class SwimComp extends ComponentDefinition {
         this.Nodes.addAll( init.bootstrapNodes);
         this.aggregatorAddress = init.aggregatorAddress;
         
+   
         
         ArrayList<NatedAddress> Nodes;						//all know nodes
         nodeStatus=new HashMap<NatedAddress,Status>();		//nodes and status
@@ -109,6 +110,11 @@ public class SwimComp extends ComponentDefinition {
         subscribe(handleStatusTimeout, timer);
         subscribe(handleRTTTimeout,timer);
         subscribe(susptimeout,timer);
+        
+        for(NatedAddress a:init.bootstrapNodes)
+        {
+        	nodeStatus.put(a,new Status(Status.UNKNOWN,ts));
+        }
     }
 
     private Handler<Start> handleStart = new Handler<Start>() {
@@ -148,7 +154,7 @@ public class SwimComp extends ComponentDefinition {
         @Override
         public void handle(NetPing event) 
         {
-            log.info("{} received ping from:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
+            log.info("{} received ping from:{}, ping={}", new Object[]{selfAddress.getId(), event.getHeader().getSource().getId(),event.getContent().toString()});
             receivedPings++;
             
             NodeAlive(event.getSource());
@@ -158,9 +164,9 @@ public class SwimComp extends ComponentDefinition {
             {
 	            log.info("{} sending pong to:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
 	            if(event.getContent().Proxy!=null)
-	            	trigger(new NetPong(selfAddress, event.getContent().Proxy,new Pong(selfAddress,event.getContent().dest, aggregatorAddress, getGossip())), network);
+	            	trigger(new NetPong(selfAddress, event.getContent().Proxy,new Pong(event.getContent(), getGossip())), network);
 	            else
-		            trigger(new NetPong(selfAddress, event.getContent().dest,new Pong(selfAddress,event.getContent().dest, aggregatorAddress, getGossip())), network);
+		            trigger(new NetPong(selfAddress, event.getContent().sender,new Pong(event.getContent(), getGossip())), network);
 
             }
             
@@ -211,9 +217,13 @@ public class SwimComp extends ComponentDefinition {
     	@Override
     	public void handle(Suspect_timeout event)
     	{
-    		NodeDead(event.TargetAdr);
-            log.info("{} is found dead by {}", new Object[]{event.TargetAdr,selfAddress.getId()});
-
+    		if(nodeStatus.get(event.TargetAdr).isAlive())
+    			return;
+    		else
+    		{
+	    		NodeDead(event.TargetAdr);
+	            log.info("{} is found dead by {}", new Object[]{event.TargetAdr,selfAddress.getId()});
+    		}
     	}
 	};
     private Handler<RTT_Timeout> handleRTTTimeout = new Handler<RTT_Timeout>() 
@@ -248,7 +258,12 @@ public class SwimComp extends ComponentDefinition {
     };
     private void scheduleRTTtimeout(Ping p, boolean b)
     {
-    	ScheduleTimeout ST=new ScheduleTimeout(maxRTTdir);
+    	ScheduleTimeout ST;
+    	if(b)
+    		ST=new ScheduleTimeout(maxRTTdir);
+    	else
+    		ST=new ScheduleTimeout(2*maxRTTdir);
+
     	RTT_Timeout t=new RTT_Timeout(ST,p,b);
     	ST.setTimeoutEvent(t);
     	RTTID=t.getTimeoutId();
@@ -268,14 +283,17 @@ public class SwimComp extends ComponentDefinition {
 	}
 	private void cancelRTTtimeout()
 	{
-        CancelTimeout ct = new CancelTimeout(RTTID);
-        trigger(ct, timer);
-        pingTimeoutId = null;
+		if(pingTimeoutId!=null)
+		{
+	        CancelTimeout ct = new CancelTimeout(RTTID);
+	        trigger(ct, timer);
+	        pingTimeoutId = null;
+		}
     }
 
     private void schedulePeriodicPing()
     {
-        SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(1000, 1000);
+        SchedulePeriodicTimeout spt = new SchedulePeriodicTimeout(1000, 10*maxRTTdir);
         PeriodicPingTimer sc = new PeriodicPingTimer(spt);
         spt.setTimeoutEvent(sc);
         pingTimeoutId = sc.getTimeoutId();
@@ -289,7 +307,7 @@ public class SwimComp extends ComponentDefinition {
     	while(true)
     	{
     		adr=Nodes.get(rand.nextInt(Nodes.size()));
-    		//if(nodeStatus.get(adr)==null||nodeStatus.get(adr).Status!=Status.DEAD)
+    		if(adr!=selfAddress)
     			break;
     	}
     	
@@ -321,6 +339,7 @@ public class SwimComp extends ComponentDefinition {
     		if(old_s==null)
     		{
     			nodeStatus.put(adr, new_s);
+    			Nodes.add(adr);
     			newgossip++;
     			continue;
     		}
@@ -356,14 +375,16 @@ public class SwimComp extends ComponentDefinition {
     protected void NodeSusp(NatedAddress source) 
     {
     	Status s=nodeStatus.get(source);
+    	
     	if(s!=null&&!s.isSusp()&&!s.isDead())	//if change
     		Delta.add(new Pair<NatedAddress,Status>(source, new Status(Status.SUSP,ts)));
     	if(s==null)
     		Delta.add(new Pair<NatedAddress,Status>(source, new Status(Status.SUSP,ts)));
-
+    	if(s.isSusp())
+    		return;
     	nodeStatus.put(source, new Status(Status.SUSP,ts));
     	this.printStatus();
-    	scheduleSuspTimeout(source, 100);
+    	scheduleSuspTimeout(source, 5*maxRTTdir);
     	
 	}
     protected void NodeDead(NatedAddress source) 
@@ -467,7 +488,6 @@ public class SwimComp extends ComponentDefinition {
     private static class Suspect_timeout extends Timeout
     {
     	public final NatedAddress TargetAdr;
-
 		public Suspect_timeout(ScheduleTimeout sT,NatedAddress target)
         {
             super(sT);
@@ -483,7 +503,7 @@ public class SwimComp extends ComponentDefinition {
     	susepects.put(target,t.getTimeoutId());
     	trigger(ST,timer);
 	}
-	public void cancelSuspTimeout(NatedAddress target)
+	private void cancelSuspTimeout(NatedAddress target)
 	{
 		UUID timeoutid=susepects.get(target);
 		if(timeoutid==null)

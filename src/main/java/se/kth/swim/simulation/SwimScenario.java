@@ -204,7 +204,7 @@ public class SwimScenario
 
        // @Override
         public ChangeNetworkModelCmd generate(Integer setIndex) {
-            NetworkModel baseNetworkModel = new UniformRandomModel(50, 500);
+            NetworkModel baseNetworkModel = new UniformRandomModel(50, 100);
             NetworkModel compositeNetworkModel = new DisconnectedNodesNetworkModel(setIndex, baseNetworkModel, disconnectedNodesSets.get(setIndex));
             return new ChangeNetworkModelCmd(compositeNetworkModel);
         }
@@ -214,7 +214,7 @@ public class SwimScenario
 
         //@Override
         public ChangeNetworkModelCmd generate(Integer setIndex) {
-            NetworkModel baseNetworkModel = new UniformRandomModel(50, 500);
+            NetworkModel baseNetworkModel = new UniformRandomModel(50, 100);
             NetworkModel compositeNetworkModel = new DeadLinkNetworkModel(setIndex, baseNetworkModel, deadLinksSets.get(setIndex));
             return new ChangeNetworkModelCmd(compositeNetworkModel);
         }
@@ -244,7 +244,7 @@ public class SwimScenario
     public static SimulationScenario simpleBoot(final long seed) 
     {
         SwimScenario.seed = seed;
-        final int peers=15;
+        final int peers=3;
         SimulationScenario scen = new SimulationScenario()
         {
             {
@@ -305,9 +305,9 @@ public class SwimScenario
 //                stopPeers.startAfterTerminationOf(10000, startPeers);
 //               killPeers.startAfterStartOf(1000, startPeers);
 //                deadLinks1.startAfterTerminationOf(10000,startPeers);
-                disconnectedNodes1.startAfterTerminationOf(1000, startPeers);
-                //fetchSimulationResult.startAfterTerminationOf(10000, startPeers);
-                //terminateAfterTerminationOf(10000, fetchSimulationResult);
+//                disconnectedNodes1.startAfterTerminationOf(1000, startPeers);
+               fetchSimulationResult.startAfterTerminationOf(10000, startPeers);
+               terminateAfterTerminationOf(10000, fetchSimulationResult);
 
             }
         };

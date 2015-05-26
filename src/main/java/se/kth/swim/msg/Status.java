@@ -33,6 +33,7 @@ public class Status implements Serializable
 	public static final int ALIVE = 0;
 	public static final int DEAD = 4;
 	public static final int SUSP = 1;
+	public static final int UNKNOWN = -1;
 
 	public int Status;
     public long time;

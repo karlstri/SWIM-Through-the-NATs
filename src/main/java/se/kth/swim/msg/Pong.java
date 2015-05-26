@@ -24,4 +24,12 @@ public class Pong implements Serializable
 		this.Proxy=proxy;
 		data=piggy;
 	}
+
+	public Pong(Ping ping, HashMap<NatedAddress, Status> gossip)
+	{
+		this.sender=ping.dest;
+		this.dest=ping.sender;
+		this.Proxy=ping.Proxy;
+		data=gossip;
+	}
 }
