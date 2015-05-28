@@ -26,7 +26,7 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
 /**
  * @author Alex Ormenisan <aaor@sics.se>
  */
-public class CroupierContainer<C extends Object>  implements Container<NatedAddress, C>, Ageing {
+public class CroupierContainer<C extends Object> implements Container<NatedAddress, C>, Ageing {
 
     private int age;
     private NatedAddress src;
@@ -42,17 +42,16 @@ public class CroupierContainer<C extends Object>  implements Container<NatedAddr
         this(src, content, 0);
     }
 
-    //@Override
+    
     public int getAge() {
         return age;
     }
 
-    //@Override
+    
     public NatedAddress getSource() {
         return src;
     }
 
-    //@Override
     public C getContent() {
         return content;
     }

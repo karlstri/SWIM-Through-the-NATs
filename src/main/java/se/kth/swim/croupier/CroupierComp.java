@@ -58,8 +58,7 @@ import se.sics.p2ptoolbox.util.network.impl.BasicHeader;
 /**
  * @author Alex Ormenisan <aaor@sics.se>
  */
-public class CroupierComp extends ComponentDefinition
-{
+public class CroupierComp extends ComponentDefinition {
 
     private final static Logger log = LoggerFactory.getLogger(CroupierComp.class);
 
@@ -85,7 +84,7 @@ public class CroupierComp extends ComponentDefinition
         this.self = init.self;
         this.croupierConfig = init.croupierConfig;
         this.overlayId = init.overlayId;
-        this.logPrefix = "<oid:" + overlayId + ",nid:" + self .toString() + ">";
+        this.logPrefix = "<oid:" + overlayId + ",nid:" + self.getBaseAdr().toString() + ">";
         this.bootstrapNodes = new ArrayList<NatedAddress>(init.bootstrapNodes);
 
         log.info("{} initiating with bootstrap nodes:{} ...", logPrefix, bootstrapNodes);
@@ -95,8 +94,8 @@ public class CroupierComp extends ComponentDefinition
         this.shuffleTimeoutId = null;
 
         Random rand = new Random(init.seed + overlayId);
-        this.publicView = new CroupierView((BasicAddress) self , croupierConfig.viewSize, rand);
-        this.privateView = new CroupierView((BasicAddress) self , croupierConfig.viewSize, rand);
+        this.publicView = new CroupierView((BasicAddress) self.getBaseAdr(), croupierConfig.viewSize, rand);
+        this.privateView = new CroupierView((BasicAddress) self.getBaseAdr(), croupierConfig.viewSize, rand);
 
         subscribe(handleStart, control);
         subscribe(handleStop, control);
@@ -230,7 +229,7 @@ public class CroupierComp extends ComponentDefinition
             }
 
             NatedAddress peer = selectPeerToShuffleWith(croupierConfig.softMaxTemperature);
-            if (peer == null || peer .equals(self )) {
+            if (peer == null || peer.getBaseAdr().equals(self.getBaseAdr())) {
                 log.error("{} this should not happen - logic error selecting peer", logPrefix);
                 throw new RuntimeException("Error selecting peer");
             }
@@ -271,7 +270,7 @@ public class CroupierComp extends ComponentDefinition
                 throw new RuntimeException("message not belonging to croupier overlay");
             }
             NatedAddress reqSrc = request.getHeader().getSource();
-            if (self .equals(reqSrc )) {
+            if (self.getBaseAdr().equals(reqSrc.getBaseAdr())) {
                 log.error("{} Tried to shuffle with myself", logPrefix);
                 throw new RuntimeException("tried to shuffle with myself");
             }
@@ -321,7 +320,7 @@ public class CroupierComp extends ComponentDefinition
                         throw new RuntimeException("message not belonging to croupier overlay");
                     }
                     NatedAddress respSrc = response.getHeader().getSource();
-                    if (self .equals(respSrc )) {
+                    if (self.getBaseAdr().equals(respSrc.getBaseAdr())) {
                         log.error("{} Tried to shuffle with myself", logPrefix);
                         throw new RuntimeException("tried to shuffle with myself");
                     }

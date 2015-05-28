@@ -28,7 +28,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import se.kth.swim.msg.net.Container;
+import se.kth.swim.croupier.CroupierPort;
+import se.kth.swim.croupier.msg.CroupierSample;
 import se.kth.swim.msg.net.NetMsg;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
@@ -41,7 +42,6 @@ import se.sics.kompics.network.Header;
 import se.sics.kompics.network.Network;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.RelayHeader;
-import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
 
 /**
  *
@@ -53,6 +53,7 @@ public class NatTraversalComp extends ComponentDefinition
     private static final Logger log = LoggerFactory.getLogger(NatTraversalComp.class);
     private Negative<Network> local = provides(Network.class);
     private Positive<Network> network = requires(Network.class);
+    private Positive<CroupierPort> croupier = requires(CroupierPort.class);
 
     
     
@@ -69,7 +70,7 @@ public class NatTraversalComp extends ComponentDefinition
     HashMap<NatedAddress,NatedAddress> cashe=new HashMap<NatedAddress ,NatedAddress>();
     ArrayList<NatedAddress> fingers;
 
-    
+	private Set<NatedAddress> opensample;
 
     public NatTraversalComp(NatTraversalInit init) 
     {
@@ -82,7 +83,7 @@ public class NatTraversalComp extends ComponentDefinition
         subscribe(handleStop, control);
         subscribe(handleIncomingMsg, network);
         subscribe(handleOutgoingMsg, local);
-        subscribe(handleRelay,network);
+        subscribe(handleCroupierSample, croupier);
         
         
     }
@@ -90,8 +91,10 @@ public class NatTraversalComp extends ComponentDefinition
     private Handler<Start> handleStart = new Handler<Start>() {
 
         @Override
-        public void handle(Start event) {
+        public void handle(Start event) 
+        {
             log.info("{} starting...", new Object[]{selfAddress.getId()});
+            
         }
 
     };
@@ -110,66 +113,43 @@ public class NatTraversalComp extends ComponentDefinition
         public void handle(NetMsg<Object> msg) 
         {
             log.trace("{} received msg:{}", new Object[]{selfAddress.getId(), msg});
-            Header<NatedAddress> header = msg.getHeader();
-            if (header instanceof SourceHeader)
+            spy(msg);
+            if(msg.getHeader() instanceof Container)//from routing
             {
-                if (!selfAddress.isOpen()) 
-                {
-                    throw new RuntimeException("source header msg received on nated node - nat traversal logic error");
-                }
-                SourceHeader<NatedAddress> sourceHeader = (SourceHeader<NatedAddress>) header;
-                if (sourceHeader.getActualDestination().getParents().contains(selfAddress))
-                {
-                    log.info("{} relaying message for:{}", new Object[]{selfAddress.getId(), sourceHeader.getSource()});
-                    RelayHeader<NatedAddress> relayHeader = sourceHeader.getRelayHeader();
-                    trigger(msg.copyMessage(relayHeader), network);
-                    return;
-                } else 
-                {
-                    log.warn("{} received weird relay message:{} - dropping it", new Object[]{selfAddress.getId(), msg});
-                    return;
-                }
-            } 
-            else 
-            	if (header instanceof RelayHeader) 
-	            {
-	                if (selfAddress.isOpen())
-	                {
-	                    throw new RuntimeException("relay header msg received on open node - nat traversal logic error");
-	                }
-	                RelayHeader<NatedAddress> relayHeader = (RelayHeader<NatedAddress>) header;
-	                log.info("{} delivering relayed message:{} from:{}", new Object[]{selfAddress.getId(), msg, relayHeader.getActualSource()});
-	                Header<NatedAddress> originalHeader = relayHeader.getActualHeader();
-	                trigger(msg.copyMessage(originalHeader), local);
-	                return;
-	            } else 
-	            {
-	                log.info("{} delivering direct message:{} from:{}", new Object[]{selfAddress.getId(), msg, header.getSource()});
-	                trigger(msg, local);
-	                return;
-	            }
+            	Container<NatedAddress> cont=(Container<NatedAddress>)msg.getHeader();
+            	
+            	if(partners.contains(cont.getActualDestination())||freshpartners.contains(cont.getActualDestination()))
+            	{
+            		//if is partner repack message
+            		trigger(msg.copyMessage(new RelayHeader<NatedAddress>(cont.getActualHeader(),selfAddress)),network);//deliver to partners
+            	}
+            	else//do more routing
+            	{
+            		NatedAddress a=doRouting(cont.getActualDestination());
+            		trigger(msg.copyMessage(new Container<NatedAddress>(cont.getActualHeader(),cont.getSource(),a)),network);
+            	}
+            }
+            else//direct delivery
+            {
+            	if(selfAddress.isOpen())
+            	{
+            		trigger(msg,local);
+            	}
+            	else
+            	{
+            		//error
+
+            	}
+            }
         }
 
+		private void spy(NetMsg<Object> msg) {
+			// TODO Auto-generated method stub
+			
+		}
+
     };
-    private Handler<Container<NetMsg<Object>>> handleRelay=new Handler<Container<NetMsg<Object>>>(){
-    	public void handle(Container<NetMsg<Object>> event)
-    	{
-    		NatedAddress dest=event.getContent().getDestination();
-    		if(partners.contains(dest)||freshpartners.contains(dest))//deliver
-    		{
-    			trigger(event.getContent(),network);
-    			return;
-    		}
-    		else
-    		{
-    			NatedAddress to=cashe.get(dest);
-    			if(to==null)
-    				to=getPred(dest);
-				
-    			trigger(new Container<NetMsg<Object>>(selfAddress,to,event.getContent()),network);
-    		}
-    	}
-    };
+
    
     
     private Handler<NetMsg<Object>> handleOutgoingMsg = new Handler<NetMsg<Object>>() {
@@ -186,28 +166,39 @@ public class NatTraversalComp extends ComponentDefinition
                 return;
             } else 
             {
-            	NatedAddress dest=msg.getDestination();
-        		if(partners.contains(dest)||freshpartners.contains(dest))// i have direct connection
-        		{
-        			trigger(msg, network);
-        		}
-        		else
-        			trigger(new Container<NetMsg<Object>>(selfAddress,selfAddress,msg),network);
             	
-                if(header.getDestination().getParents().isEmpty())
-                {
-                    throw new RuntimeException("nated node with no parents");
-                }
-                NatedAddress parent = randomNode(header.getDestination().getParents());
-                SourceHeader<NatedAddress> sourceHeader = new SourceHeader<NatedAddress>(header, parent);
-                log.info("{} sending message:{} to relay:{}", new Object[]{selfAddress.getId(), msg, parent});
-                trigger(msg.copyMessage(sourceHeader), network);
-                return;
+            	//routing mode
             }
         }
 
+	
+
     };
-    
+
+	private NatedAddress doRouting(NatedAddress dest)
+	{
+		NatedAddress ret=cashe.get(dest);
+		if(ret!=null)
+			return ret;
+		else
+		{
+			ret=getPred(dest);
+			if(ret!=null)
+				return ret;
+			else
+				return randomNode(opensample);
+		}
+	}
+    private Handler<CroupierSample<NatedAddress>> handleCroupierSample = new Handler<CroupierSample<NatedAddress>>() {
+    	     	@Override
+    	        public void handle(CroupierSample<NatedAddress> event)
+    	     	{
+    	            log.info("{} croupier public nodes:{}", selfAddress.getBaseAdr(), event.publicSample);
+    	            //opensample=event.publicSample.;
+    	            //TODO fix this so that randomNode gives a random public node
+    	        }
+    };
+    	
     private NatedAddress randomNode(Set<NatedAddress> nodes) 
     {
         int index = rand.nextInt(nodes.size());
@@ -246,6 +237,8 @@ public class NatTraversalComp extends ComponentDefinition
     	int best=0;
     	for(int i=0;i<fingers.size();i++)
     	{
+    		if(fingers.get(i)==null)
+    			continue;
     		long dist=getDistTo(fingers.get(i));
     		if(delta<=dist)
     			best++;

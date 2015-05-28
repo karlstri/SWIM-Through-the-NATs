@@ -29,7 +29,7 @@ import org.javatuples.Pair;
 
 import se.kth.swim.AggregatorComp;
 import se.kth.swim.HostComp;
-import se.sics.kompics.network.Address;
+import se.kth.swim.croupier.CroupierConfig;
 import se.sics.p2ptoolbox.simulator.cmd.OperationCmd;
 import se.sics.p2ptoolbox.simulator.cmd.impl.ChangeNetworkModelCmd;
 import se.sics.p2ptoolbox.simulator.cmd.impl.SimulationResult;
@@ -58,7 +58,8 @@ public class SwimScenario
 
     private static long seed;
     private static InetAddress localHost;
-
+    
+    private static CroupierConfig croupierConfig = new CroupierConfig(10, 5, 2000, 1000);
     static {
         try {
             localHost = InetAddress.getByName("127.0.0.1");
@@ -154,7 +155,7 @@ public class SwimScenario
                      * generators with same seed else they might behave the same
                      */
                     long nodeSeed = seed + nodeId;
-                    return new HostComp.HostInit(nodeAddress, bootstrapNodes, aggregatorServer, nodeSeed);
+                    return new HostComp.HostInit(nodeAddress, bootstrapNodes, aggregatorServer, nodeSeed, croupierConfig);
                 }
 
                 //@Override
@@ -306,7 +307,7 @@ public class SwimScenario
 //               killPeers.startAfterStartOf(1000, startPeers);
 //                deadLinks1.startAfterTerminationOf(10000,startPeers);
 //                disconnectedNodes1.startAfterTerminationOf(1000, startPeers);
-               fetchSimulationResult.startAfterTerminationOf(10000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(30*1000, startPeers);
                terminateAfterTerminationOf(10000, fetchSimulationResult);
 
             }
