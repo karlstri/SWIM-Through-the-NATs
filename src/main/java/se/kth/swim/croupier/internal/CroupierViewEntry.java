@@ -38,10 +38,9 @@ import se.sics.p2ptoolbox.util.network.impl.BasicAddress;
  */
 public class CroupierViewEntry<C extends Object> {
 
-    public static enum Order implements Comparator<CroupierViewEntry> 
-    {
-        ByAge() 
-        {
+    public static enum Order implements Comparator<CroupierViewEntry> {
+        ByAge() {
+            
             public int compare(CroupierViewEntry o1, CroupierViewEntry o2) {
                 if (o1.getDescriptor().getAge() > o2.getDescriptor().getAge()) {
                     return 1;
