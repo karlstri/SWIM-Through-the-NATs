@@ -82,6 +82,7 @@ public class NatTraversalComp extends ComponentDefinition
         subscribe(handleStop, control);
         subscribe(handleIncomingMsg, network);
         subscribe(handleOutgoingMsg, local);
+        subscribe(handleRelay,network);
         
         
     }
@@ -106,39 +107,47 @@ public class NatTraversalComp extends ComponentDefinition
     private Handler<NetMsg<Object>> handleIncomingMsg = new Handler<NetMsg<Object>>() {
 
         @Override
-        public void handle(NetMsg<Object> msg) {
+        public void handle(NetMsg<Object> msg) 
+        {
             log.trace("{} received msg:{}", new Object[]{selfAddress.getId(), msg});
             Header<NatedAddress> header = msg.getHeader();
-            if (header instanceof SourceHeader) {
+            if (header instanceof SourceHeader)
+            {
                 if (!selfAddress.isOpen()) 
                 {
                     throw new RuntimeException("source header msg received on nated node - nat traversal logic error");
                 }
                 SourceHeader<NatedAddress> sourceHeader = (SourceHeader<NatedAddress>) header;
-                if (sourceHeader.getActualDestination().getParents().contains(selfAddress)) {
+                if (sourceHeader.getActualDestination().getParents().contains(selfAddress))
+                {
                     log.info("{} relaying message for:{}", new Object[]{selfAddress.getId(), sourceHeader.getSource()});
                     RelayHeader<NatedAddress> relayHeader = sourceHeader.getRelayHeader();
                     trigger(msg.copyMessage(relayHeader), network);
                     return;
-                } else {
+                } else 
+                {
                     log.warn("{} received weird relay message:{} - dropping it", new Object[]{selfAddress.getId(), msg});
                     return;
                 }
-            } else if (header instanceof RelayHeader) 
-            {
-                if (selfAddress.isOpen()) {
-                    throw new RuntimeException("relay header msg received on open node - nat traversal logic error");
-                }
-                RelayHeader<NatedAddress> relayHeader = (RelayHeader<NatedAddress>) header;
-                log.info("{} delivering relayed message:{} from:{}", new Object[]{selfAddress.getId(), msg, relayHeader.getActualSource()});
-                Header<NatedAddress> originalHeader = relayHeader.getActualHeader();
-                trigger(msg.copyMessage(originalHeader), local);
-                return;
-            } else {
-                log.info("{} delivering direct message:{} from:{}", new Object[]{selfAddress.getId(), msg, header.getSource()});
-                trigger(msg, local);
-                return;
-            }
+            } 
+            else 
+            	if (header instanceof RelayHeader) 
+	            {
+	                if (selfAddress.isOpen())
+	                {
+	                    throw new RuntimeException("relay header msg received on open node - nat traversal logic error");
+	                }
+	                RelayHeader<NatedAddress> relayHeader = (RelayHeader<NatedAddress>) header;
+	                log.info("{} delivering relayed message:{} from:{}", new Object[]{selfAddress.getId(), msg, relayHeader.getActualSource()});
+	                Header<NatedAddress> originalHeader = relayHeader.getActualHeader();
+	                trigger(msg.copyMessage(originalHeader), local);
+	                return;
+	            } else 
+	            {
+	                log.info("{} delivering direct message:{} from:{}", new Object[]{selfAddress.getId(), msg, header.getSource()});
+	                trigger(msg, local);
+	                return;
+	            }
         }
 
     };
@@ -146,7 +155,7 @@ public class NatTraversalComp extends ComponentDefinition
     	public void handle(Container<NetMsg<Object>> event)
     	{
     		NatedAddress dest=event.getContent().getDestination();
-    		if(partners.contains(dest)||freshpartners.contains(dest))
+    		if(partners.contains(dest)||freshpartners.contains(dest))//deliver
     		{
     			trigger(event.getContent(),network);
     			return;
@@ -161,7 +170,7 @@ public class NatTraversalComp extends ComponentDefinition
     		}
     	}
     };
-    
+   
     
     private Handler<NetMsg<Object>> handleOutgoingMsg = new Handler<NetMsg<Object>>() {
 
@@ -177,11 +186,14 @@ public class NatTraversalComp extends ComponentDefinition
                 return;
             } else 
             {
-            	if(cashe.get(header.getDestination()) != null)
-            	{
-            		NatedAddress proxy=cashe.get(header.getDestination());
-            		trigger(new Container<NetMsg<Object>>(selfAddress,proxy,msg),network);
-            	}
+            	NatedAddress dest=msg.getDestination();
+        		if(partners.contains(dest)||freshpartners.contains(dest))// i have direct connection
+        		{
+        			trigger(msg, network);
+        		}
+        		else
+        			trigger(new Container<NetMsg<Object>>(selfAddress,selfAddress,msg),network);
+            	
                 if(header.getDestination().getParents().isEmpty())
                 {
                     throw new RuntimeException("nated node with no parents");
