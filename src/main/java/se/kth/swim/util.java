@@ -1,5 +1,7 @@
 package se.kth.swim;
 
+import se.sics.p2ptoolbox.util.network.NatedAddress;
+
 public class util 
 {
 	public static int binlog( int bits ) // returns 0 for bits=0
@@ -11,5 +13,9 @@ public class util
 	    if( bits >= 4   ) { bits >>>= 2; log += 2; }
 	    return log + ( bits >>> 1 );
 	}
-	
+	public static long NATHash(NatedAddress adr)
+	{
+		long hash=adr.getIp().hashCode()*adr.getPort();
+		return hash;
+	}
 }

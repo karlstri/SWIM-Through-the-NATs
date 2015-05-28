@@ -18,11 +18,17 @@
  */
 package se.kth.swim;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import se.kth.swim.msg.net.Container;
 import se.kth.swim.msg.net.NetMsg;
 import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
@@ -48,11 +54,27 @@ public class NatTraversalComp extends ComponentDefinition
     private Negative<Network> local = provides(Network.class);
     private Positive<Network> network = requires(Network.class);
 
+    
+    
     private final NatedAddress selfAddress;
+    private final long selfHash;
+    
     private final Random rand;
+    
+    NatedAddress next,prev;
+    
+    HashSet<NatedAddress> partners=new HashSet<NatedAddress>();
+    HashSet<NatedAddress> freshpartners=new HashSet<NatedAddress>();
+    
+    HashMap<NatedAddress,NatedAddress> cashe=new HashMap<NatedAddress ,NatedAddress>();
+    ArrayList<NatedAddress> fingers;
 
-    public NatTraversalComp(NatTraversalInit init) {
+    
+
+    public NatTraversalComp(NatTraversalInit init) 
+    {
         this.selfAddress = init.selfAddress;
+        this.selfHash=util.NATHash(selfAddress);
         log.info("{} {} initiating...", new Object[]{selfAddress.getId(), (selfAddress.isOpen() ? "OPEN" : "NATED")});
 
         this.rand = new Random(init.seed);
@@ -60,6 +82,8 @@ public class NatTraversalComp extends ComponentDefinition
         subscribe(handleStop, control);
         subscribe(handleIncomingMsg, network);
         subscribe(handleOutgoingMsg, local);
+        
+        
     }
 
     private Handler<Start> handleStart = new Handler<Start>() {
@@ -86,7 +110,8 @@ public class NatTraversalComp extends ComponentDefinition
             log.trace("{} received msg:{}", new Object[]{selfAddress.getId(), msg});
             Header<NatedAddress> header = msg.getHeader();
             if (header instanceof SourceHeader) {
-                if (!selfAddress.isOpen()) {
+                if (!selfAddress.isOpen()) 
+                {
                     throw new RuntimeException("source header msg received on nated node - nat traversal logic error");
                 }
                 SourceHeader<NatedAddress> sourceHeader = (SourceHeader<NatedAddress>) header;
@@ -99,7 +124,8 @@ public class NatTraversalComp extends ComponentDefinition
                     log.warn("{} received weird relay message:{} - dropping it", new Object[]{selfAddress.getId(), msg});
                     return;
                 }
-            } else if (header instanceof RelayHeader) {
+            } else if (header instanceof RelayHeader) 
+            {
                 if (selfAddress.isOpen()) {
                     throw new RuntimeException("relay header msg received on open node - nat traversal logic error");
                 }
@@ -116,23 +142,52 @@ public class NatTraversalComp extends ComponentDefinition
         }
 
     };
-
+    private Handler<Container<NetMsg<Object>>> handleRelay=new Handler<Container<NetMsg<Object>>>(){
+    	public void handle(Container<NetMsg<Object>> event)
+    	{
+    		NatedAddress dest=event.getContent().getDestination();
+    		if(partners.contains(dest)||freshpartners.contains(dest))
+    		{
+    			trigger(event.getContent(),network);
+    			return;
+    		}
+    		else
+    		{
+    			NatedAddress to=cashe.get(dest);
+    			if(to==null)
+    				to=getPred(dest);
+				
+    			trigger(new Container<NetMsg<Object>>(selfAddress,to,event.getContent()),network);
+    		}
+    	}
+    };
+    
+    
     private Handler<NetMsg<Object>> handleOutgoingMsg = new Handler<NetMsg<Object>>() {
 
         @Override
-        public void handle(NetMsg<Object> msg) {
+        public void handle(NetMsg<Object> msg) 
+        {
             log.trace("{} sending msg:{}", new Object[]{selfAddress.getId(), msg});
             Header<NatedAddress> header = msg.getHeader();
-            if(header.getDestination().isOpen()) {
+            if(header.getDestination().isOpen()) 
+            {
                 log.info("{} sending direct message:{} to:{}", new Object[]{selfAddress.getId(), msg, header.getDestination()});
                 trigger(msg, network);
                 return;
-            } else {
-                if(header.getDestination().getParents().isEmpty()) {
+            } else 
+            {
+            	if(cashe.get(header.getDestination()) != null)
+            	{
+            		NatedAddress proxy=cashe.get(header.getDestination());
+            		trigger(new Container<NetMsg<Object>>(selfAddress,proxy,msg),network);
+            	}
+                if(header.getDestination().getParents().isEmpty())
+                {
                     throw new RuntimeException("nated node with no parents");
                 }
                 NatedAddress parent = randomNode(header.getDestination().getParents());
-                SourceHeader<NatedAddress> sourceHeader = new SourceHeader(header, parent);
+                SourceHeader<NatedAddress> sourceHeader = new SourceHeader<NatedAddress>(header, parent);
                 log.info("{} sending message:{} to relay:{}", new Object[]{selfAddress.getId(), msg, parent});
                 trigger(msg.copyMessage(sourceHeader), network);
                 return;
@@ -141,24 +196,51 @@ public class NatTraversalComp extends ComponentDefinition
 
     };
     
-    private NatedAddress randomNode(Set<NatedAddress> nodes) {
+    private NatedAddress randomNode(Set<NatedAddress> nodes) 
+    {
         int index = rand.nextInt(nodes.size());
         Iterator<NatedAddress> it = nodes.iterator();
-        while(index > 0) {
+        while(index > 0)
+        {
             it.next();
             index--;
         }
+        
         return it.next();
     }
 
-    public static class NatTraversalInit extends Init<NatTraversalComp> {
+    public static class NatTraversalInit extends Init<NatTraversalComp>
+    {
 
         public final NatedAddress selfAddress;
         public final long seed;
 
-        public NatTraversalInit(NatedAddress selfAddress, long seed) {
+        public NatTraversalInit(NatedAddress selfAddress, long seed)
+        {
             this.selfAddress = selfAddress;
             this.seed = seed;
         }
+    }
+    private long getDistTo(NatedAddress adr)
+    {
+    	long delta=util.NATHash(adr)-selfHash;
+    	if(delta<0)
+    		delta+=Long.MAX_VALUE;
+    	return delta;
+    }
+    private NatedAddress getPred(NatedAddress adr)
+    {
+    	long delta=getDistTo(adr);
+    	int best=0;
+    	for(int i=0;i<fingers.size();i++)
+    	{
+    		long dist=getDistTo(fingers.get(i));
+    		if(delta<=dist)
+    			best++;
+    		else
+    			break;
+    	}
+    	return fingers.get(best);
+    	
     }
 }
