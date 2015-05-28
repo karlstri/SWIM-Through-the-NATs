@@ -91,12 +91,36 @@ public class SwimScenario {
 
         disconnectedNodes = new HashSet<Integer>();
         disconnectedNodes.add(10);
+        disconnectedNodes.add(14);
+        disconnectedNodes.add(18);
+        disconnectedNodes.add(22);
+        disconnectedNodes.add(26);
+        disconnectedNodes.add(30);
+        disconnectedNodes.add(34);
+        disconnectedNodes.add(38);
+        disconnectedNodes.add(42);
+        disconnectedNodes.add(46);
+        disconnectedNodes.add(50);
+        disconnectedNodes.add(54);
+        disconnectedNodes.add(58);
+        disconnectedNodes.add(62);
+        disconnectedNodes.add(66);
+        disconnectedNodes.add(70);
+        disconnectedNodes.add(74);
+        disconnectedNodes.add(78);
+        disconnectedNodes.add(82);
+        disconnectedNodes.add(86);
+        disconnectedNodes.add(90);
+        disconnectedNodes.add(94);
+        disconnectedNodes.add(98);
+        disconnectedNodes.add(102);
+        disconnectedNodes.add(106);
         disconnectedNodesSets.put(1, disconnectedNodes);
 
-        disconnectedNodes = new HashSet<Integer>();
-        disconnectedNodes.add(10);
-        disconnectedNodes.add(14);
-        disconnectedNodesSets.put(2, disconnectedNodes);
+        //disconnectedNodes = new HashSet<Integer>();
+        //disconnectedNodes.add(10);
+        //disconnectedNodes.add(14);
+        //disconnectedNodesSets.put(2, disconnectedNodes);
     }
 
     static Operation1<StartAggregatorCmd, Integer> startAggregatorOp = new Operation1<StartAggregatorCmd, Integer>() {
@@ -242,7 +266,7 @@ public class SwimScenario {
     public static SimulationScenario simpleBoot(final long seed) 
     {
         SwimScenario.seed = seed;
-        final int peers=5;
+        final int peers=50;
         SimulationScenario scen = new SimulationScenario()
         {
             {
@@ -311,9 +335,9 @@ public class SwimScenario {
 //                stopPeers.startAfterTerminationOf(10000, startPeers);
 //               killPeers.startAfterStartOf(1000, startPeers);
 //                deadLinks1.startAfterTerminationOf(10000,startPeers);
-                disconnectedNodes1.startAfterTerminationOf(50000, startPeers);
+                disconnectedNodes1.startAfterTerminationOf(200000, startPeers);
                 //disconnectedNodes1.startAfterTerminationOf(20000, startPeers);
-                fetchSimulationResult.startAfterTerminationOf(1000*1000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(300*1000, startPeers);
                terminateAfterTerminationOf(10000, fetchSimulationResult);
 
             }
