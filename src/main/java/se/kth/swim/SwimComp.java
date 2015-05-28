@@ -154,7 +154,7 @@ public class SwimComp extends ComponentDefinition {
         @Override
         public void handle(NetPing event) 
         {
-            log.info("{} received ping from:{}, ping={}", new Object[]{selfAddress.getId(), event.getHeader().getSource().getId(),event.getContent().toString()});
+            log.debug("{} received ping from:{}, ping={}", new Object[]{selfAddress.getId(), event.getHeader().getSource().getId(),event.getContent().toString()});
             receivedPings++;
             
             NodeAlive(event.getSource());
@@ -162,7 +162,7 @@ public class SwimComp extends ComponentDefinition {
 
             if(event.getContent().dest==selfAddress)
             {
-	            log.info("{} sending pong to:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
+	            log.debug("{} sending pong to:{}", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
 	            if(event.getContent().Proxy!=null)
 	            	trigger(new NetPong(selfAddress, event.getContent().Proxy,new Pong(event.getContent(), getGossip())), network);
 	            else
@@ -176,7 +176,7 @@ public class SwimComp extends ComponentDefinition {
     	            trigger(new NetPing(selfAddress, event.getContent().dest,new Ping(event.getContent().sender,event.getContent().dest,selfAddress,getGossip())), network);
                 }
                 else
-                    log.info("{} received ping from:{}, ping was missdeliverd", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
+                    log.debug("{} received ping from:{}, ping was missdeliverd", new Object[]{selfAddress.getId(), event.getHeader().getSource()});
 
         }
 
@@ -186,7 +186,7 @@ public class SwimComp extends ComponentDefinition {
         @Override
         public void handle(NetPong event) 
         {
-            log.info("{} received pong from:{} ,dest={}", new Object[]{selfAddress.getId(), event.getHeader().getSource() ,event.getContent()});
+            log.debug("{} received pong from:{} ,dest={}", new Object[]{selfAddress.getId(), event.getHeader().getSource() ,event.getContent()});
             NodeAlive(event.getSource());
             GetPiggyStatus(event.getContent().data);
             cancelRTTtimeout();
@@ -203,7 +203,7 @@ public class SwimComp extends ComponentDefinition {
         {
         	NatedAddress partnerAdr=getRandomNode();
             ts++;
-            log.info("{} sending ping to partner:{}", new Object[]{selfAddress.getId(), partnerAdr});
+            log.debug("{} sending ping to partner:{}", new Object[]{selfAddress.getId(), partnerAdr});
             HashMap<NatedAddress,Status> gossip=getGossip();
             Ping p=new Ping(selfAddress,partnerAdr,null,gossip);
             trigger(new NetPing(selfAddress, partnerAdr,p), network);
@@ -222,7 +222,7 @@ public class SwimComp extends ComponentDefinition {
     		else
     		{
 	    		NodeDead(event.TargetAdr);
-	            log.info("{} is found dead by {}", new Object[]{event.TargetAdr,selfAddress.getId()});
+	            log.warn("{} is found dead by {} at time {}", new Object[]{event.TargetAdr,selfAddress.getId(), ts});
     		}
     	}
 	};
@@ -232,11 +232,11 @@ public class SwimComp extends ComponentDefinition {
         @Override
         public void handle(RTT_Timeout event)
         {
-            log.info("{} did not revive pong from {}", new Object[]{selfAddress.getId(), event.ping.dest});
+            log.debug("{} did not revive pong from {}", new Object[]{selfAddress.getId(), event.ping.dest});
             //NodeSusp(event.TargetAdr);
             if(!event.Proxy)
             {
-            	log.info(" indirect...", new Object[]{selfAddress.getId()});
+            	log.debug(" indirect...", new Object[]{selfAddress.getId()});
             	k_inderectPings(event.ping,10);
             }
             else
@@ -272,7 +272,7 @@ public class SwimComp extends ComponentDefinition {
     protected void k_inderectPings(Ping p, int k)
     {
 
-    	log.info(" indirect...", new Object[]{selfAddress.getId()});
+    	log.debug(" indirect...", new Object[]{selfAddress.getId()});
     	for(int i=0;i<k;i++)
     	{
         	NatedAddress inderect_adr=getRandomNode();
@@ -330,7 +330,7 @@ public class SwimComp extends ComponentDefinition {
 
     protected void GetPiggyStatus(HashMap<NatedAddress,Status> piggydata)
     {
-        log.info("{} unpack gossip:{}", new Object[]{selfAddress.getId(), piggydata.size()});
+        log.debug("{} unpack gossip:{}", new Object[]{selfAddress.getId(), piggydata.size()});
         int newgossip=0;
     	for(NatedAddress adr:piggydata.keySet())
     	{
@@ -355,7 +355,7 @@ public class SwimComp extends ComponentDefinition {
     		
     		
     	} 
-    	log.info("{} items of new gossip", new Object[]{newgossip});
+    	log.debug("{} items of new gossip", new Object[]{newgossip});
 
     }
     /**
@@ -404,7 +404,7 @@ public class SwimComp extends ComponentDefinition {
      * */
     private HashMap<NatedAddress,Status> getGossip()
     {
-        log.info("{} gets items of gossip:{}", new Object[]{selfAddress.getId(), Delta.size()});
+        log.debug("{} gets items of gossip:{}", new Object[]{selfAddress.getId(), Delta.size()});
 
     	HashMap<NatedAddress,Status> ret=new HashMap<NatedAddress,Status>();
     	for(Pair<NatedAddress,Status> p:Delta)
@@ -469,7 +469,7 @@ public class SwimComp extends ComponentDefinition {
         public PeriodicPingTimer(SchedulePeriodicTimeout request)
         {
             super(request);
-            log.info("peridic ping set ");
+            log.info("periodic ping set ");
         }
         
     }

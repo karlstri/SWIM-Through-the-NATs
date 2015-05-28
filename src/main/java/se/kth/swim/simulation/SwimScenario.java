@@ -24,9 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.javatuples.Pair;
-
 import se.kth.swim.AggregatorComp;
 import se.kth.swim.HostComp;
 import se.kth.swim.croupier.CroupierConfig;
@@ -53,8 +51,7 @@ import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 /**
  * @author Alex Ormenisan <aaor@sics.se>
  */
-public class SwimScenario 
-{
+public class SwimScenario {
 
     private static long seed;
     private static InetAddress localHost;
@@ -98,7 +95,7 @@ public class SwimScenario
 
         disconnectedNodes = new HashSet<Integer>();
         disconnectedNodes.add(10);
-        disconnectedNodes.add(12);
+        disconnectedNodes.add(14);
         disconnectedNodesSets.put(2, disconnectedNodes);
     }
 
@@ -245,7 +242,7 @@ public class SwimScenario
     public static SimulationScenario simpleBoot(final long seed) 
     {
         SwimScenario.seed = seed;
-        final int peers=3;
+        final int peers=5;
         SimulationScenario scen = new SimulationScenario()
         {
             {
@@ -274,8 +271,8 @@ public class SwimScenario
                     {
                         eventInterArrivalTime(constant(1000));
                         
-                       // raise(1, killNodeOp, new ConstantDistribution(Integer.class, 10));
-                        System.err.println("killed a peer");
+                        //raise(1, killNodeOp, new ConstantDistribution(Integer.class, 10));
+                        //System.err.println("killed a peer");
                     }
                 };
 
@@ -289,7 +286,15 @@ public class SwimScenario
                 StochasticProcess disconnectedNodes1 = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
-                        raise(1, disconnectedNodesNMOp, new ConstantDistribution(Integer.class, 1));
+                        
+                        Integer[] disconnectP=new Integer[2];
+                        disconnectP[0]=1;
+                        disconnectP[1]=2;
+                        
+                        raise(1, disconnectedNodesNMOp, new GenIntSequentialDistribution(disconnectP));
+                                                
+                        
+                        //raise(1, disconnectedNodesNMOp, new ConstantDistribution(Integer.class, 1));
                         
                     }
                 };
@@ -306,8 +311,9 @@ public class SwimScenario
 //                stopPeers.startAfterTerminationOf(10000, startPeers);
 //               killPeers.startAfterStartOf(1000, startPeers);
 //                deadLinks1.startAfterTerminationOf(10000,startPeers);
-//                disconnectedNodes1.startAfterTerminationOf(1000, startPeers);
-                fetchSimulationResult.startAfterTerminationOf(30*1000, startPeers);
+                disconnectedNodes1.startAfterTerminationOf(50000, startPeers);
+                //disconnectedNodes1.startAfterTerminationOf(20000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(1000*1000, startPeers);
                terminateAfterTerminationOf(10000, fetchSimulationResult);
 
             }
