@@ -42,6 +42,7 @@ import se.sics.kompics.network.Header;
 import se.sics.kompics.network.Network;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.RelayHeader;
+import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
 
 /**
  *
@@ -94,6 +95,7 @@ public class NatTraversalComp extends ComponentDefinition
         public void handle(Start event) 
         {
             log.info("{} starting...", new Object[]{selfAddress.getId()});
+            join();
             
         }
 
@@ -137,19 +139,28 @@ public class NatTraversalComp extends ComponentDefinition
             	}
             	else
             	{
-            		//error
+            		if(msg.getHeader() instanceof RelayHeader)
+            		{
+            			RelayHeader<NatedAddress> h=(RelayHeader<NatedAddress>)msg.getHeader();
+            			trigger(msg.copyMessage(h.getActualHeader()),local);
+            		}
+            		else
+            			throw new RuntimeException("nat traversal logic error");
+            		 
 
             	}
             }
         }
 
-		private void spy(NetMsg<Object> msg) {
-			// TODO Auto-generated method stub
-			
-		}
+	
+     
 
     };
-
+    private void spy(NetMsg<Object> msg)
+	{
+		// TODO Auto-generated method stub
+		
+	}
    
     
     private Handler<NetMsg<Object>> handleOutgoingMsg = new Handler<NetMsg<Object>>() {
@@ -167,7 +178,7 @@ public class NatTraversalComp extends ComponentDefinition
             } else 
             {
             	
-            	//routing mode
+            	trigger(msg.copyMessage(new SourceHeader(msg.getHeader(),getParent())),network);
             }
         }
 
@@ -189,7 +200,17 @@ public class NatTraversalComp extends ComponentDefinition
 				return randomNode(opensample);
 		}
 	}
-    private Handler<CroupierSample<NatedAddress>> handleCroupierSample = new Handler<CroupierSample<NatedAddress>>() {
+    protected NatedAddress getParent() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	protected void join()
+    {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private Handler<CroupierSample<NatedAddress>> handleCroupierSample = new Handler<CroupierSample<NatedAddress>>() {
     	     	@Override
     	        public void handle(CroupierSample<NatedAddress> event)
     	     	{
