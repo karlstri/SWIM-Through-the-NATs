@@ -376,15 +376,19 @@ public class SwimComp extends ComponentDefinition {
     {
     	Status s=nodeStatus.get(source);
     	
-    	if(s!=null&&!s.isSusp()&&!s.isDead())	//if change
+    	//if(s!=null&&!s.isSusp()&&!s.isDead())	//if change
+    	if(s!=null&&s.isAlive())
     		Delta.add(new Pair<NatedAddress,Status>(source, new Status(Status.SUSP,ts)));
     	if(s==null)
     		Delta.add(new Pair<NatedAddress,Status>(source, new Status(Status.SUSP,ts)));
-    	if(s.isSusp())
+    	if(s.isSusp()||s.isDead())
     		return;
+    	else
+    	{
     	nodeStatus.put(source, new Status(Status.SUSP,ts));
     	this.printStatus();
     	scheduleSuspTimeout(source, 5*maxRTTdir);
+    	}
     	
 	}
     protected void NodeDead(NatedAddress source) 

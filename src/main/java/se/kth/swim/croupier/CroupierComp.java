@@ -112,7 +112,7 @@ public class CroupierComp extends ComponentDefinition {
 
         @Override
         public void handle(Start event) {
-            log.info("{} starting...", logPrefix);
+            //log.info("{} starting...", logPrefix);
             selfView = new Object();
             startShuffle();
         }
