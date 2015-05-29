@@ -24,7 +24,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.javatuples.Pair;
+
 import se.kth.swim.AggregatorComp;
 import se.kth.swim.HostComp;
 import se.kth.swim.croupier.CroupierConfig;
@@ -51,7 +53,7 @@ import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 /**
  * @author Alex Ormenisan <aaor@sics.se>
  */
-public class SwimScenario {
+public class SwimScenario25 {
 
     private static long seed;
     private static InetAddress localHost;
@@ -72,14 +74,10 @@ public class SwimScenario {
         Set<Pair<Integer, Integer>> deadLinks;
 
         deadLinks = new HashSet<Pair<Integer, Integer>>();
-        deadLinks.add(Pair.with(10, 12));
-        deadLinks.add(Pair.with(12, 10));
+        //deadLinks.add(Pair.with(10, 12));
         deadLinksSets.put(1, deadLinks);
 
         deadLinks = new HashSet<Pair<Integer, Integer>>();
-        deadLinks.add(Pair.with(10, 12));
-        deadLinks.add(Pair.with(12, 10));
-        deadLinks.add(Pair.with(13, 10));
         deadLinksSets.put(2, deadLinks);
     }
 
@@ -90,58 +88,58 @@ public class SwimScenario {
         Set<Integer> disconnectedNodes;
 
         disconnectedNodes = new HashSet<Integer>();
-        disconnectedNodes.add(10);
+        //NATed peers
+        disconnectedNodes.add(11);
+        disconnectedNodes.add(12);
+        disconnectedNodes.add(13);
         disconnectedNodes.add(14);
+        disconnectedNodes.add(16);
+        disconnectedNodes.add(17);
         disconnectedNodes.add(18);
+        disconnectedNodes.add(19);
+        disconnectedNodes.add(21);
         disconnectedNodes.add(22);
+        disconnectedNodes.add(23);
+        disconnectedNodes.add(24);
         disconnectedNodes.add(26);
-        disconnectedNodes.add(30);
+        disconnectedNodes.add(27);
+        disconnectedNodes.add(28);
+        disconnectedNodes.add(29);
+        disconnectedNodes.add(31);
+        disconnectedNodes.add(32);
+        disconnectedNodes.add(33);
         disconnectedNodes.add(34);
-        disconnectedNodes.add(38);
-        disconnectedNodes.add(42);
-        disconnectedNodes.add(46);
+        //Public peers
+        disconnectedNodes.add(35);
+        disconnectedNodes.add(40);
+        disconnectedNodes.add(45);
         disconnectedNodes.add(50);
-        disconnectedNodes.add(54);
-        disconnectedNodes.add(58);
-        disconnectedNodes.add(62);
-        disconnectedNodes.add(66);
-        disconnectedNodes.add(70);
-        disconnectedNodes.add(74);
-        disconnectedNodes.add(78);
-        disconnectedNodes.add(82);
-        disconnectedNodes.add(86);
-        disconnectedNodes.add(90);
-        disconnectedNodes.add(94);
-        disconnectedNodes.add(98);
-        disconnectedNodes.add(102);
-        disconnectedNodes.add(106);
+        disconnectedNodes.add(55);
         disconnectedNodesSets.put(1, disconnectedNodes);
 
-        //disconnectedNodes = new HashSet<Integer>();
-        //disconnectedNodes.add(10);
-        //disconnectedNodes.add(14);
-        //disconnectedNodesSets.put(2, disconnectedNodes);
+        disconnectedNodes = new HashSet<Integer>();
+        disconnectedNodesSets.put(2, disconnectedNodes);
     }
 
     static Operation1<StartAggregatorCmd, Integer> startAggregatorOp = new Operation1<StartAggregatorCmd, Integer>() {
 
-//        @Override
+    	// @Override
         public StartAggregatorCmd generate(final Integer nodeId) {
             return new StartAggregatorCmd<AggregatorComp, NatedAddress>() {
                 private NatedAddress aggregatorAddress;
 
- //               @Override
+                // @Override
                 public Class getNodeComponentDefinition() {
                     return AggregatorComp.class;
                 }
 
- //               @Override
+                // @Override
                 public AggregatorComp.AggregatorInit getNodeComponentInit() {
                     aggregatorAddress = new BasicNatedAddress(new BasicAddress(localHost, 23456, nodeId));
                     return new AggregatorComp.AggregatorInit(aggregatorAddress);
                 }
 
-//                @Override
+                // @Override
                 public NatedAddress getAddress() {
                     return aggregatorAddress;
                 }
@@ -152,7 +150,7 @@ public class SwimScenario {
 
     static Operation1<StartNodeCmd, Integer> startNodeOp = new Operation1<StartNodeCmd, Integer>() {
 
-        //@Override
+        // @Override
         public StartNodeCmd generate(final Integer nodeId) {
             return new StartNodeCmd<HostComp, NatedAddress>() {
                 private NatedAddress nodeAddress;
@@ -162,9 +160,9 @@ public class SwimScenario {
                     return HostComp.class;
                 }
 
-                //@Override
+                // @Override
                 public HostComp.HostInit getNodeComponentInit(NatedAddress aggregatorServer, Set<NatedAddress> bootstrapNodes) {
-                    if (nodeId % 2 == 0) {
+                    if (nodeId % 5 == 0) {
                         //open address
                         nodeAddress = new BasicNatedAddress(new BasicAddress(localHost, 12345, nodeId));
                     } else {
@@ -179,17 +177,17 @@ public class SwimScenario {
                     return new HostComp.HostInit(nodeAddress, bootstrapNodes, aggregatorServer, nodeSeed, croupierConfig);
                 }
 
-                //@Override
+                // @Override
                 public Integer getNodeId() {
                     return nodeId;
                 }
 
-                //@Override
+                // @Override
                 public NatedAddress getAddress() {
                     return nodeAddress;
                 }
 
-                //@Override
+                // @Override
                 public int bootstrapSize() {
                     return 5;
                 }
@@ -209,8 +207,7 @@ public class SwimScenario {
         }
 
     };
-    
-    
+
     //Usable NetworkModels:
     //1. UniformRandomModel
     //parameters: minimum link latency, maximum link latency
@@ -235,7 +232,7 @@ public class SwimScenario {
 
     static Operation1<ChangeNetworkModelCmd, Integer> deadLinksNMOp = new Operation1<ChangeNetworkModelCmd, Integer>() {
 
-        //@Override
+        // @Override
         public ChangeNetworkModelCmd generate(Integer setIndex) {
             NetworkModel baseNetworkModel = new UniformRandomModel(50, 100);
             NetworkModel compositeNetworkModel = new DeadLinkNetworkModel(setIndex, baseNetworkModel, deadLinksSets.get(setIndex));
@@ -248,19 +245,11 @@ public class SwimScenario {
         public SimulationResult generate() {
             return new SimulationResult() {
 
-          //      @Override
+            	// @Override
                 public void setSimulationResult(OperationCmd.ValidationException failureCause) {
                     SwimSimulationResult.failureCause = failureCause;
                 }
             };
-        }
-    };
-    
-    static Operation1<ChangeNetworkModelCmd, Integer> reConnectedNodesNMOp = new Operation1<ChangeNetworkModelCmd, Integer>() {
-
-        public ChangeNetworkModelCmd generate(Integer setIndex) {
-            NetworkModel baseNetworkModel = new UniformRandomModel(50, 500);
-            return new ChangeNetworkModelCmd(baseNetworkModel);
         }
     };
 
@@ -274,8 +263,8 @@ public class SwimScenario {
     //you can implement your own - by extending Distribution
     public static SimulationScenario simpleBoot(final long seed) 
     {
-        SwimScenario.seed = seed;
-        final int peers=50;
+        SwimScenario25.seed = seed;
+        final int peers=100;
         SimulationScenario scen = new SimulationScenario()
         {
             {
@@ -294,7 +283,7 @@ public class SwimScenario {
                         Integer[] peerId=new Integer[peers];
                         for(int i=0;i<peers;i++)
                         {
-                        	peerId[i]=10 + 4*i;
+                        	peerId[i]=10 + i;
                         }
                         raise(peers, startNodeOp, new GenIntSequentialDistribution(peerId));
                     }
@@ -303,7 +292,6 @@ public class SwimScenario {
                 StochasticProcess killPeers = new StochasticProcess() {
                     {
                         eventInterArrivalTime(constant(1000));
-                        
                         //raise(1, killNodeOp, new ConstantDistribution(Integer.class, 10));
                         //System.err.println("killed a peer");
                     }
@@ -325,10 +313,6 @@ public class SwimScenario {
                         disconnectP[1]=2;
                         
                         raise(1, disconnectedNodesNMOp, new GenIntSequentialDistribution(disconnectP));
-                                                
-                        
-                        //raise(1, disconnectedNodesNMOp, new ConstantDistribution(Integer.class, 1));
-                        
                     }
                 };
 
@@ -338,24 +322,15 @@ public class SwimScenario {
                         raise(1, simulationResult);
                     }
                 };
-                
-                StochasticProcess reConnectNodes = new StochasticProcess() {
-                    {
-                        eventInterArrivalTime(constant(1000));
-                        raise(1, reConnectedNodesNMOp, new ConstantDistribution(Integer.class, 1));
-                    }
-                };
 
+                /*
+                 * Simulation creating 100 peers with 80% NATed and disconnecting 25 of them after a while (20 NATed, 5 publics)
+                 */
                 startAggregator.start();
                 startPeers.startAfterTerminationOf(1000, startAggregator);
-                reConnectNodes.startAfterTerminationOf(2000, startPeers);
-//                stopPeers.startAfterTerminationOf(10000, startPeers);
-//               killPeers.startAfterStartOf(1000, startPeers);
-//                deadLinks1.startAfterTerminationOf(10000,startPeers);
                 disconnectedNodes1.startAfterTerminationOf(200*1000, startPeers);
-                //reConnectNodes.startAfterTerminationOf(300*1000, startPeers);
-                fetchSimulationResult.startAfterTerminationOf(400*1000, startPeers);
-               terminateAfterTerminationOf(10000, fetchSimulationResult);
+                fetchSimulationResult.startAfterTerminationOf(300*1000, startPeers);
+                terminateAfterTerminationOf(10000, fetchSimulationResult);
 
             }
         };
