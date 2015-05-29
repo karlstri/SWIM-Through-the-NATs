@@ -209,7 +209,8 @@ public class SwimScenario {
         }
 
     };
-
+    
+    
     //Usable NetworkModels:
     //1. UniformRandomModel
     //parameters: minimum link latency, maximum link latency
@@ -252,6 +253,14 @@ public class SwimScenario {
                     SwimSimulationResult.failureCause = failureCause;
                 }
             };
+        }
+    };
+    
+    static Operation1<ChangeNetworkModelCmd, Integer> reConnectedNodesNMOp = new Operation1<ChangeNetworkModelCmd, Integer>() {
+
+        public ChangeNetworkModelCmd generate(Integer setIndex) {
+            NetworkModel baseNetworkModel = new UniformRandomModel(50, 500);
+            return new ChangeNetworkModelCmd(baseNetworkModel);
         }
     };
 
@@ -329,15 +338,23 @@ public class SwimScenario {
                         raise(1, simulationResult);
                     }
                 };
+                
+                StochasticProcess reConnectNodes = new StochasticProcess() {
+                    {
+                        eventInterArrivalTime(constant(1000));
+                        raise(1, reConnectedNodesNMOp, new ConstantDistribution(Integer.class, 1));
+                    }
+                };
 
                 startAggregator.start();
                 startPeers.startAfterTerminationOf(1000, startAggregator);
+                reConnectNodes.startAfterTerminationOf(2000, startPeers);
 //                stopPeers.startAfterTerminationOf(10000, startPeers);
 //               killPeers.startAfterStartOf(1000, startPeers);
 //                deadLinks1.startAfterTerminationOf(10000,startPeers);
-                disconnectedNodes1.startAfterTerminationOf(200000, startPeers);
-                //disconnectedNodes1.startAfterTerminationOf(20000, startPeers);
-                fetchSimulationResult.startAfterTerminationOf(300*1000, startPeers);
+                disconnectedNodes1.startAfterTerminationOf(200*1000, startPeers);
+                //reConnectNodes.startAfterTerminationOf(300*1000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(400*1000, startPeers);
                terminateAfterTerminationOf(10000, fetchSimulationResult);
 
             }
