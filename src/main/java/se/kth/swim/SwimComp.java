@@ -222,7 +222,7 @@ public class SwimComp extends ComponentDefinition {
     		else
     		{
 	    		NodeDead(event.TargetAdr);
-	            log.warn("{} is found dead by {} at time {}", new Object[]{event.TargetAdr,selfAddress.getId(), ts});
+	            log.info("{} is found dead by {} at time {}", new Object[]{event.TargetAdr,selfAddress.getId(), ts});
     		}
     	}
 	};
@@ -527,7 +527,7 @@ public class SwimComp extends ComponentDefinition {
     			
     	}
         log.info("{} has {} Alive, {} Suspected, {} Dead at time {}", new Object[]{selfAddress,A,S,D,ts });
-        log.info("nodes are :"+ Arrays.toString(nodeStatus.keySet().toArray()), new Object[]{ });
+        log.debug("nodes are :"+ Arrays.toString(nodeStatus.keySet().toArray()), new Object[]{ });
 
     }
 }
