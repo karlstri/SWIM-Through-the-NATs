@@ -57,8 +57,8 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
 public class SwimComp extends ComponentDefinition {
 
     private static final Logger log = LoggerFactory.getLogger(SwimComp.class);
-	private static final double lambda =2.0;
-	private static final long  maxRTTdir=400; //i think it is ms
+	private static final double lambda =20.0;
+	private static final long  maxRTTdir=1000; //i think it is ms
 	
     private Positive<Network> network = requires(Network.class);
     private Positive<Timer> timer = requires(Timer.class);
@@ -415,11 +415,12 @@ public class SwimComp extends ComponentDefinition {
     	{
     		ret.put(p.first,p.second);
     	}
-    	if(Delta.size()>lambda*util.binlog(nodeStatus.size()))
+    	System.err.println(Delta.size());
+    	while(Delta.size()>lambda*util.binlog(nodeStatus.size()))
     		Delta.poll();
     	
-    	//return ret;
-    	return nodeStatus;
+    	return ret;
+    	//return nodeStatus;
     }
 
 	private void cancelPeriodicPing()

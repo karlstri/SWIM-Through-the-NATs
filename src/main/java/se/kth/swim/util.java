@@ -15,7 +15,7 @@ public class util
 	}
 	public static long NATHash(NatedAddress adr)
 	{
-		long hash=adr.getIp().hashCode()*adr.getPort();
+		long hash=adr.getIp().hashCode()*adr.getPort()*adr.getId();
 		return hash;
 	}
 }

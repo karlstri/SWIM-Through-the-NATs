@@ -29,6 +29,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import se.kth.swim.croupier.CroupierPort;
+import se.kth.swim.croupier.internal.CroupierShuffle;
+import se.kth.swim.croupier.internal.CroupierShuffle.Response;
+import se.kth.swim.croupier.internal.CroupierShuffleNet;
 import se.kth.swim.croupier.msg.CroupierSample;
 import se.kth.swim.msg.net.NetMsg;
 import se.sics.kompics.ComponentDefinition;
@@ -40,7 +43,11 @@ import se.sics.kompics.Start;
 import se.sics.kompics.Stop;
 import se.sics.kompics.network.Header;
 import se.sics.kompics.network.Network;
+import se.sics.kompics.network.Transport;
 import se.sics.p2ptoolbox.util.network.NatedAddress;
+import se.sics.p2ptoolbox.util.network.impl.BasicContentMsg;
+import se.sics.p2ptoolbox.util.network.impl.BasicHeader;
+import se.sics.p2ptoolbox.util.network.impl.BasicNatedAddress;
 import se.sics.p2ptoolbox.util.network.impl.RelayHeader;
 import se.sics.p2ptoolbox.util.network.impl.SourceHeader;
 
@@ -63,13 +70,13 @@ public class NatTraversalComp extends ComponentDefinition
     
     private final Random rand;
     
-    NatedAddress next,prev;
+    NatedAddress next,prev,Parent;
     
     HashSet<NatedAddress> partners=new HashSet<NatedAddress>();
     HashSet<NatedAddress> freshpartners=new HashSet<NatedAddress>();
     
     HashMap<NatedAddress,NatedAddress> cashe=new HashMap<NatedAddress ,NatedAddress>();
-    ArrayList<NatedAddress> fingers;
+    ArrayList<NatedAddress> fingers=new ArrayList<NatedAddress>();
 
 	private Set<NatedAddress> opensample=new HashSet<NatedAddress>();
 
@@ -81,6 +88,8 @@ public class NatTraversalComp extends ComponentDefinition
 
         this.rand = new Random(init.seed);
         
+        for(int i=0;i<100;i++)
+        	fingers.add(null);
         
         
         subscribe(handleStart, control);
@@ -98,7 +107,6 @@ public class NatTraversalComp extends ComponentDefinition
         public void handle(Start event) 
         {
             log.info("{} starting...", new Object[]{selfAddress.getId()});
-            join();
             
         }
 
@@ -119,11 +127,16 @@ public class NatTraversalComp extends ComponentDefinition
         {
             log.trace("{} received msg:{}", new Object[]{selfAddress.getId(), msg});
             spy(msg);
+            if(msg.getContent() instanceof Response)
+            {
+            	trigger(msg,local);
+            	return;
+            }//*/
             if(msg.getHeader() instanceof Container)//from routing
             {
             	Container<NatedAddress> cont=(Container<NatedAddress>)msg.getHeader();
-            	
-            	if(partners.contains(cont.getActualDestination())||freshpartners.contains(cont.getActualDestination()))
+            	//System.err.println("container? "+msg.getHeader().getClass().getName());
+            	if(partners.contains(msg.getDestination()))
             	{
             		//if is partner repack message
             		trigger(msg.copyMessage(new RelayHeader<NatedAddress>(cont.getActualHeader(),selfAddress)),network);//deliver to partners
@@ -136,22 +149,42 @@ public class NatTraversalComp extends ComponentDefinition
             }
             else//direct delivery
             {
+
+           
+        		if(msg.getHeader() instanceof RelayHeader)
+        		{
+        			
+        			RelayHeader<NatedAddress> h=(RelayHeader<NatedAddress>)msg.getHeader();
+        			
+        			System.err.println("hyrra a messege got thrue the nat :"+h);
+        			trigger(msg.copyMessage(h.getActualHeader()),local);
+        			return;
+        		}
+        		if(msg.getHeader() instanceof SourceHeader)
+        		{
+                	
+
+        			SourceHeader<NatedAddress> h=(SourceHeader<NatedAddress>) msg.getHeader();
+    				System.err.println("handle souceheader"+h);
+        			BasicHeader<NatedAddress> b=new BasicHeader<NatedAddress>(h.getSource(),h.getActualDestination(),Transport.UDP);
+        			Container<NatedAddress> cont=new Container<NatedAddress>(b, selfAddress, doRouting(h.getActualDestination()));
+        			trigger(msg.copyMessage(cont),network);
+        			partners.add(h.getSource());
+        			return;
+        		}
+
             	if(selfAddress.isOpen())
             	{
             		trigger(msg,local);
             	}
-            	else
-            	{
-            		if(msg.getHeader() instanceof RelayHeader)
-            		{
-            			RelayHeader<NatedAddress> h=(RelayHeader<NatedAddress>)msg.getHeader();
-            			trigger(msg.copyMessage(h.getActualHeader()),local);
-            		}
-            		else
-            			throw new RuntimeException("nat traversal logic error");
-            		 
+        		else
+        		{
+        			
+        			System.err.println(msg.getContent().getClass().getSimpleName());
+        			throw new RuntimeException("nat traversal logic error");
+        		}
 
-            	}
+            	
             }
         }
 
@@ -159,9 +192,41 @@ public class NatTraversalComp extends ComponentDefinition
      
 
     };
+    private void useAddress(NatedAddress in)
+    {
+    	
+    	if(in==null)
+    		return;
+    	if(next==null||getDistTo(in)<getDistTo(next))
+    	{
+    		next=in;
+    		//System.err.println("use Adr:get next");
+    	}
+    	if(prev==null||getDistTo(in)>getDistTo(prev))
+    	{
+    		prev=in;
+    		//System.err.println("use Adr:get prev");
+    	}
+    	
+    	for(int i=1;i<fingers.size();i++)
+    	{
+    		//System.err.println("finger Set"+Math.pow(2, i)+" "+getDistTo(in)+" "+Math.pow(2, i-1));
+    		if(Math.pow(2, i)>getDistTo(in)&&getDistTo(in)>Math.pow(2, i-1))
+    		{
+    			fingers.set(i,in);
+    			//System.err.println("finger Set");
+    		}
+    	}
+    	
+    }
     private void spy(NetMsg<Object> msg)
 	{
-		// TODO Auto-generated method stub
+		if(msg.getSource().isOpen())
+			useAddress(msg.getSource());
+		if(msg.getHeader() instanceof Container)
+		{
+			
+		}
 		
 	}
    
@@ -175,13 +240,19 @@ public class NatTraversalComp extends ComponentDefinition
             Header<NatedAddress> header = msg.getHeader();
             if(header.getDestination().isOpen()) 
             {
+            	
                 log.info("{} sending direct message:{} to:{}", new Object[]{selfAddress.getId(), msg, header.getDestination()});
                 trigger(msg, network);
                 return;
             } else 
             {
+            	if(Parent!=null)
+            	{
+            		SourceHeader<NatedAddress> h=new SourceHeader<NatedAddress>(msg.getHeader(),getParent());
+            		System.err.println("sending SourceHeader, "+h );
+            		trigger(msg.copyMessage(h),network);
+            	}
             	
-            	trigger(msg.copyMessage(new SourceHeader(msg.getHeader(),getParent())),network);
             }
         }
 
@@ -191,6 +262,11 @@ public class NatTraversalComp extends ComponentDefinition
 
 	private NatedAddress doRouting(NatedAddress dest)
 	{
+		
+		if(dest==null)
+			return null;
+		if(dest.isOpen())
+			return dest;
 		NatedAddress ret=cashe.get(dest);
 		if(ret!=null)
 			return ret;
@@ -200,24 +276,71 @@ public class NatTraversalComp extends ComponentDefinition
 			if(ret!=null)
 				return ret;
 			else
-				return randomNode(opensample);
+				if(opensample.size()>0)
+					return randomNode(opensample);
+				else return next;
 		}
 	}
     protected NatedAddress getParent()
     {
 		
-		return null;
+		return Parent;
 	}
 	protected void join()
     {
-		while(opensample.size()==0)
+		if(selfAddress.isOpen())
 		{
-			
+			NatedAddress node=randomNode(opensample);
+
 		}
+		else
+		{
+			if(Parent==null)
+			{
+				NatedAddress node=randomNode(opensample);
+				Parent=node;
+				System.err.println("ass parent "+selfAddress+" : "+node);
+			}
 			
+		}	
 			
 		
 	}
+
+	private Handler<PositionRequest> positionreq = new Handler<PositionRequest>() {
+    	     	@Override
+    	        public void handle(PositionRequest event)
+    	     	{
+    	     		if(!selfAddress.isOpen())
+	     			{
+    	     			if(event.getSource()==getParent())
+	     				{
+    	     				
+    	     				if(getDistTo(event.getContent())<getDistTo(Parent))
+    	     				{
+    	     					Parent=event.getContent();
+    	     					join();//get better parent if possible;
+    	     				}
+	     				}
+    	     			else
+    	     			{
+    	     				throw new RuntimeException("nat traversal logic error");
+    	     			}
+	     			}
+    	     		else
+    	     		{
+    	     			if(event.getContent()==null)
+    	     			{
+    	     				event.sendresp();
+    	     			}
+    	     			else
+    	     			{
+    	     				
+    	     			}
+    	     		}
+    	     			
+    	        }
+    };
 
 	private Handler<CroupierSample<NatedAddress>> handleCroupierSample = new Handler<CroupierSample<NatedAddress>>() {
     	     	@Override
@@ -225,13 +348,15 @@ public class NatTraversalComp extends ComponentDefinition
     	     	{
     	            log.info("{} croupier public nodes:{}", selfAddress.getBaseAdr(), event.publicSample);
     	            opensample=new HashSet<NatedAddress>();
-    	            System.err.println(event.publicSample);
+    	            
     	            for(se.kth.swim.croupier.util.Container<NatedAddress, NatedAddress> a:event.publicSample)
     	            {
         	            //System.err.println(a.getSource());
-
+    	            	useAddress(a.getSource());
     	            	opensample.add(a.getSource());
     	            }
+    	            join();
+    	            System.err.println("routeself "+selfAddress+" to "+doRouting(selfAddress)+" parent ="+getParent());
     	        }
     };
     	
@@ -269,9 +394,11 @@ public class NatTraversalComp extends ComponentDefinition
     }
     private NatedAddress getPred(NatedAddress adr)
     {
+    	if(adr==null)
+    		return null;
     	long delta=getDistTo(adr);
     	int best=0;
-    	for(int i=0;i<fingers.size();i++)
+    	for(int i=1;i<fingers.size();i++)
     	{
     		if(fingers.get(i)==null)
     			continue;
@@ -280,12 +407,26 @@ public class NatTraversalComp extends ComponentDefinition
     			best++;
     		else
     			break;
+        	System.err.println("fingers "+best+"/"+fingers.size());
+
     	}
     	return fingers.get(best);
     	
     }
-    private class PositionRequest
+    private class PositionRequest extends BasicContentMsg<NatedAddress, Header<NatedAddress>, NatedAddress>
     {
+
+		public PositionRequest(Header<NatedAddress> header, NatedAddress content)
+		{
+			super(header, content);
+			// TODO Auto-generated constructor stub
+		}
+
+		public void sendresp() 
+		{
+			BasicHeader<NatedAddress> h=new BasicHeader<NatedAddress>(selfAddress, this.getSource(),Transport.UDP);
+			PositionRequest send=new PositionRequest(h,doRouting(this.getSource()));
+		}
     	
     }
 }
