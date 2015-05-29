@@ -22,7 +22,8 @@ package se.kth.swim.croupier.util;
 /**
  * @author Alex Ormenisan <aaor@sics.se>
  */
-public interface Container<S extends Object, C extends Object> {
+public interface Container<S extends Object, C extends Object> 
+{
     public S getSource();
     public C getContent();
 }

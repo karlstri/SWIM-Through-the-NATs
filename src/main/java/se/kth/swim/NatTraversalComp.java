@@ -71,7 +71,7 @@ public class NatTraversalComp extends ComponentDefinition
     HashMap<NatedAddress,NatedAddress> cashe=new HashMap<NatedAddress ,NatedAddress>();
     ArrayList<NatedAddress> fingers;
 
-	private Set<NatedAddress> opensample;
+	private Set<NatedAddress> opensample=new HashSet<NatedAddress>();
 
     public NatTraversalComp(NatTraversalInit init) 
     {
@@ -80,6 +80,9 @@ public class NatTraversalComp extends ComponentDefinition
         log.info("{} {} initiating...", new Object[]{selfAddress.getId(), (selfAddress.isOpen() ? "OPEN" : "NATED")});
 
         this.rand = new Random(init.seed);
+        
+        
+        
         subscribe(handleStart, control);
         subscribe(handleStop, control);
         subscribe(handleIncomingMsg, network);
@@ -200,13 +203,19 @@ public class NatTraversalComp extends ComponentDefinition
 				return randomNode(opensample);
 		}
 	}
-    protected NatedAddress getParent() {
-		// TODO Auto-generated method stub
+    protected NatedAddress getParent()
+    {
+		
 		return null;
 	}
 	protected void join()
     {
-		// TODO Auto-generated method stub
+		while(opensample.size()==0)
+		{
+			
+		}
+			
+			
 		
 	}
 
@@ -215,8 +224,14 @@ public class NatTraversalComp extends ComponentDefinition
     	        public void handle(CroupierSample<NatedAddress> event)
     	     	{
     	            log.info("{} croupier public nodes:{}", selfAddress.getBaseAdr(), event.publicSample);
-    	            //opensample=event.publicSample.;
-    	            //TODO fix this so that randomNode gives a random public node
+    	            opensample=new HashSet<NatedAddress>();
+    	            System.err.println(event.publicSample);
+    	            for(se.kth.swim.croupier.util.Container<NatedAddress, NatedAddress> a:event.publicSample)
+    	            {
+        	            //System.err.println(a.getSource());
+
+    	            	opensample.add(a.getSource());
+    	            }
     	        }
     };
     	
@@ -267,6 +282,10 @@ public class NatTraversalComp extends ComponentDefinition
     			break;
     	}
     	return fingers.get(best);
+    	
+    }
+    private class PositionRequest
+    {
     	
     }
 }

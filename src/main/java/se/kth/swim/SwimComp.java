@@ -385,9 +385,9 @@ public class SwimComp extends ComponentDefinition {
     		return;
     	else
     	{
-    	nodeStatus.put(source, new Status(Status.SUSP,ts));
-    	this.printStatus();
-    	scheduleSuspTimeout(source, 5*maxRTTdir);
+	    	nodeStatus.put(source, new Status(Status.SUSP,ts));
+	    	this.printStatus();
+	    	scheduleSuspTimeout(source, 5*maxRTTdir);
     	}
     	
 	}
