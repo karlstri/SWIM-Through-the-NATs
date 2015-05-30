@@ -58,7 +58,7 @@ public class SwimComp extends ComponentDefinition {
 
     private static final Logger log = LoggerFactory.getLogger(SwimComp.class);
 	private static final double lambda = 10.0;
-	private static final long  maxRTTdir=400; //i think it is ms
+	private static final long  maxRTTdir=400; //In ms
     private Positive<Network> network = requires(Network.class);
     private Positive<Timer> timer = requires(Timer.class);
 

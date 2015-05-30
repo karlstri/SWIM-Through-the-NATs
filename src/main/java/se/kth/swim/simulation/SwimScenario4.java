@@ -300,7 +300,7 @@ public class SwimScenario4 {
                  */
                 startAggregator.start();
                 startPeers.startAfterTerminationOf(1000, startAggregator);
-                fetchSimulationResult.startAfterTerminationOf(10*1000, startPeers);
+                fetchSimulationResult.startAfterTerminationOf(100*1000, startPeers);
                 terminateAfterTerminationOf(10000, fetchSimulationResult);
 
             }
