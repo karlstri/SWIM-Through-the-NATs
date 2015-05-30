@@ -57,7 +57,7 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
 public class SwimComp extends ComponentDefinition {
 
     private static final Logger log = LoggerFactory.getLogger(SwimComp.class);
-	private static final double lambda = 10000;
+	private static final double lambda = 10000; // Max size of piggy back
 	private static final long  maxRTTdir=400; //In ms
     private Positive<Network> network = requires(Network.class);
     private Positive<Timer> timer = requires(Timer.class);
@@ -431,9 +431,9 @@ public class SwimComp extends ComponentDefinition {
     	}
     	
     	// This function reduces the size of the list
-    	// while(Delta.size()>lambda*util.binlog(nodeStatus.size())){
     	//System.err.println(""+util.binlog(nodeStatus.size())+" "+Math.log(nodeStatus.size()/Math.log(2)));
-    	while(Delta.size()>lambda*Math.log(nodeStatus.size())){
+    	
+    	while(Delta.size()>lambda){
     		Delta.poll();
     	}
     	
@@ -549,7 +549,7 @@ public class SwimComp extends ComponentDefinition {
     			D++;
     			
     	}
-        log.info("{} has {} Alive, {} Suspected, {} Dead at time {}", new Object[]{selfAddress,A,S,D,ts });
+        log.info("{} has {} Alive, {} Suspected, {} Dead, total {} at time {}", new Object[]{selfAddress,A,S,D,A+S+D,ts });
         log.debug("nodes are :"+ Arrays.toString(nodeStatus.keySet().toArray()), new Object[]{ });
 
     }
