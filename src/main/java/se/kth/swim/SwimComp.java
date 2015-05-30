@@ -57,7 +57,7 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
 public class SwimComp extends ComponentDefinition {
 
     private static final Logger log = LoggerFactory.getLogger(SwimComp.class);
-	private static final double lambda = 10.0;
+	private static final double lambda = 10000;
 	private static final long  maxRTTdir=400; //In ms
     private Positive<Network> network = requires(Network.class);
     private Positive<Timer> timer = requires(Timer.class);
@@ -420,8 +420,9 @@ public class SwimComp extends ComponentDefinition {
     		ret.put(p.first,p.second);
     	}
     	
-    	while(Delta.size()>lambda*util.binlog(nodeStatus.size())){
-
+    	// This function reduces the size of the list
+    	// while(Delta.size()>lambda*util.binlog(nodeStatus.size())){
+    	while(Delta.size()>lambda){
     		Delta.poll();
     	}
     	
