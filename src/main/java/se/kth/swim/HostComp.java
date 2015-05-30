@@ -71,7 +71,7 @@ public class HostComp extends ComponentDefinition {
         swim = create(SwimComp.class, new SwimComp.SwimInit(selfAddress, init.bootstrapNodes, init.aggregatorAddress));
         connect(swim.getNegative(Timer.class), timer);
         connect(swim.getNegative(Network.class), nat.getPositive(Network.class));
-    }
+    } 
     
     private Handler<Start> handleStart = new Handler<Start>() {
 

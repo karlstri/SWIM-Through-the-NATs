@@ -78,6 +78,7 @@ public class SwimComp extends ComponentDefinition {
     private HashMap<NatedAddress,Status> nodeStatus;
     private Queue<Pair<NatedAddress,Status> > Delta;
     
+    
     private Set<NatedAddress> openAddresses;
     private Set<NatedAddress> RestrictedAddresses;
     
@@ -417,12 +418,22 @@ public class SwimComp extends ComponentDefinition {
     	HashMap<NatedAddress,Status> ret=new HashMap<NatedAddress,Status>();
     	for(Pair<NatedAddress,Status> p:Delta)
     	{
+    		if(ret.containsKey(p.first))
+    		{
+    			if(ret.get(p.first).time>p.second.time)
+    			{
+    	    		ret.put(p.first,p.second);
+    			}
+    		}
+    		else
     		ret.put(p.first,p.second);
+    		
     	}
     	
     	// This function reduces the size of the list
     	// while(Delta.size()>lambda*util.binlog(nodeStatus.size())){
-    	while(Delta.size()>lambda){
+    	//System.err.println(""+util.binlog(nodeStatus.size())+" "+Math.log(nodeStatus.size()/Math.log(2)));
+    	while(Delta.size()>lambda*Math.log(nodeStatus.size())){
     		Delta.poll();
     	}
     	

@@ -121,7 +121,7 @@ public class SwimScenario {
         //disconnectedNodes.add(10);
         //disconnectedNodes.add(14);
         //disconnectedNodesSets.put(2, disconnectedNodes);
-    }
+    } 
 
     static Operation1<StartAggregatorCmd, Integer> startAggregatorOp = new Operation1<StartAggregatorCmd, Integer>() {
 
