@@ -57,9 +57,8 @@ import se.sics.p2ptoolbox.util.network.NatedAddress;
 public class SwimComp extends ComponentDefinition {
 
     private static final Logger log = LoggerFactory.getLogger(SwimComp.class);
-	private static final double lambda =20.0;
-	private static final long  maxRTTdir=1000; //i think it is ms
-	
+	private static final double lambda = 10.0;
+	private static final long  maxRTTdir=400; //i think it is ms
     private Positive<Network> network = requires(Network.class);
     private Positive<Timer> timer = requires(Timer.class);
 
@@ -208,7 +207,7 @@ public class SwimComp extends ComponentDefinition {
             Ping p=new Ping(selfAddress,partnerAdr,null,gossip);
             trigger(new NetPing(selfAddress, partnerAdr,p), network);
             scheduleRTTtimeout(p,false);
-
+            printStatus();
         }
 
     };
@@ -222,7 +221,7 @@ public class SwimComp extends ComponentDefinition {
     		else
     		{
 	    		NodeDead(event.TargetAdr);
-	            log.info("{} is found dead by {} at time {}", new Object[]{event.TargetAdr,selfAddress.getId(), ts});
+	            log.debug("{} is found dead by {} at time {}", new Object[]{event.TargetAdr,selfAddress.getId(), ts});
     		}
     	}
 	};
@@ -251,7 +250,7 @@ public class SwimComp extends ComponentDefinition {
         @Override
         public void handle(StatusTimeout event)
         {
-            log.info("{} sending status to aggregator:{}", new Object[]{selfAddress.getId(), aggregatorAddress});
+            log.debug("{} sending status to aggregator:{}", new Object[]{selfAddress.getId(), aggregatorAddress});
             trigger(new NetStatus(selfAddress, aggregatorAddress, new Status(receivedPings)), network);
         }
 
@@ -364,43 +363,48 @@ public class SwimComp extends ComponentDefinition {
     protected void NodeAlive(NatedAddress source) 
     {
     	Status s=nodeStatus.get(source);
-    	if(s!=null&&!s.isAlive())	//if change
+    	if(s!=null&&!s.isAlive()&&s.time<ts)	//if change
     		Delta.add(new Pair<NatedAddress,Status>(source, new Status(Status.ALIVE,ts)));
     	if(s==null)
     		Delta.add(new Pair<NatedAddress,Status>(source, new Status(Status.ALIVE,ts)));
 
     	nodeStatus.put(source, new Status(Status.ALIVE,ts));
-    	this.printStatus();
+    	// this.printStatus();
 	}
     protected void NodeSusp(NatedAddress source) 
     {
     	Status s=nodeStatus.get(source);
     	
     	//if(s!=null&&!s.isSusp()&&!s.isDead())	//if change
-    	if(s!=null&&s.isAlive())
+    	if(s!=null&&s.isAlive()&&s.time<ts)
+    	{
     		Delta.add(new Pair<NatedAddress,Status>(source, new Status(Status.SUSP,ts)));
+	    	nodeStatus.put(source, new Status(Status.SUSP,ts));
+    	}
     	if(s==null)
-    		Delta.add(new Pair<NatedAddress,Status>(source, new Status(Status.SUSP,ts)));
-    	if(s.isSusp()||s.isDead())
-    		return;
-    	else
     	{
 	    	nodeStatus.put(source, new Status(Status.SUSP,ts));
-	    	this.printStatus();
-	    	scheduleSuspTimeout(source, 5*maxRTTdir);
+
+    		Delta.add(new Pair<NatedAddress,Status>(source, new Status(Status.SUSP,ts)));
     	}
-    	
+    	scheduleSuspTimeout(source, 5*maxRTTdir);
+
 	}
     protected void NodeDead(NatedAddress source) 
     {
     	Status s=nodeStatus.get(source);
-    	if(s!=null&&!s.isDead())	//if change
+    	if(s!=null&&!s.isDead()&&s.time<ts)	//if change
+    	{
     		Delta.add(new Pair<NatedAddress,Status>(source, new Status(Status.DEAD,ts)));
-    	if(s==null)
-    		Delta.add(new Pair<NatedAddress,Status>(source, new Status(Status.DEAD,ts)));
+    		nodeStatus.put(source, new Status(Status.DEAD,ts));
 
-    	nodeStatus.put(source, new Status(Status.DEAD,ts));
-    	this.printStatus();
+    	}
+    	if(s==null)
+    	{
+    		Delta.add(new Pair<NatedAddress,Status>(source, new Status(Status.DEAD,ts)));
+    		nodeStatus.put(source, new Status(Status.DEAD,ts));
+    	}
+    	// this.printStatus();
 	}
     /**
      * use for get some recent data for gossiping 
@@ -415,9 +419,11 @@ public class SwimComp extends ComponentDefinition {
     	{
     		ret.put(p.first,p.second);
     	}
-    	System.err.println(Delta.size());
-    	while(Delta.size()>lambda*util.binlog(nodeStatus.size()))
+    	
+    	while(Delta.size()>lambda*util.binlog(nodeStatus.size())){
+
     		Delta.poll();
+    	}
     	
     	return ret;
     	//return nodeStatus;
@@ -535,4 +541,5 @@ public class SwimComp extends ComponentDefinition {
         log.debug("nodes are :"+ Arrays.toString(nodeStatus.keySet().toArray()), new Object[]{ });
 
     }
+    
 }
